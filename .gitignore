@@ -1,0 +1,6 @@
+﻿**/.idea
+**/bin
+**/obj
+**/appsettings.Development.json
+**/**.sln.DotSettings.user
+**/projectservice.db**
