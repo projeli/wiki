@@ -1,0 +1,12 @@
+﻿using Projeli.WikiService.Domain.Models;
+
+namespace Projeli.WikiService.Domain.Repositories;
+
+public interface IWikiRepository
+{
+    Task<Wiki?> GetById(Ulid id, string? userId, bool force = false);
+    Task<Wiki?> GetByProjectId(Ulid projectId, string? userId, bool force = false);
+    Task<Wiki?> GetByProjectSlug(string projectSlug, string? userId, bool force = false);
+    Task<Wiki?> Create(Wiki wiki);
+    Task<Wiki?> Update(Wiki wiki);
+}
