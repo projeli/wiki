@@ -14,7 +14,7 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
             .Include(wiki => wiki.Members)
             .Where(wiki => wiki.Id == id)
             .FirstOrDefaultAsync(wiki =>
-                force || wiki.IsPublished || wiki.Members.Any(member => member.UserId == userId));
+                force || wiki.Status == WikiStatus.Published || wiki.Members.Any(member => member.UserId == userId));
     }
 
     public async Task<Wiki?> GetByProjectId(Ulid projectId, string? userId, bool force = false)
@@ -24,7 +24,7 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
             .Include(wiki => wiki.Members)
             .Where(wiki => wiki.ProjectId == projectId)
             .FirstOrDefaultAsync(wiki =>
-                force || wiki.IsPublished || wiki.Members.Any(member => member.UserId == userId));
+                force || wiki.Status == WikiStatus.Published || wiki.Members.Any(member => member.UserId == userId));
     }
 
     public async Task<Wiki?> GetByProjectSlug(string projectSlug, string? userId, bool force = false)
@@ -34,7 +34,7 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
             .Include(wiki => wiki.Members)
             .Where(wiki => wiki.ProjectSlug == projectSlug)
             .FirstOrDefaultAsync(wiki =>
-                force || wiki.IsPublished || wiki.Members.Any(member => member.UserId == userId));
+                force || wiki.Status == WikiStatus.Published || wiki.Members.Any(member => member.UserId == userId));
     }
 
     public async Task<Wiki?> Create(Wiki wiki)
@@ -81,10 +81,49 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         existingWiki.ProjectId = wiki.ProjectId;
         existingWiki.ProjectName = wiki.ProjectName;
         existingWiki.ProjectSlug = wiki.ProjectSlug;
+        existingWiki.Name = wiki.Name;
+        existingWiki.Content = wiki.Content;
+        existingWiki.Config = wiki.Config;
         existingWiki.UpdatedAt = wiki.UpdatedAt;
+        existingWiki.Status = wiki.Status;
         
         await database.SaveChangesAsync();
         
         return existingWiki;
+    }
+
+    public async Task<Wiki?> UpdateStatus(Ulid id, WikiStatus status)
+    {
+        var existingWiki = await database.Wikis.FirstOrDefaultAsync(w => w.Id == id);
+        if (existingWiki is null) return null;
+        
+        existingWiki.Status = status;
+        await database.SaveChangesAsync();
+        
+        return existingWiki;
+    }
+
+    public async Task<Wiki?> UpdateContent(Ulid id, string content)
+    {
+        var existingWiki = await database.Wikis.FirstOrDefaultAsync(w => w.Id == id);
+        if (existingWiki is null) return null;
+        
+        existingWiki.Content = content;
+        existingWiki.UpdatedAt = DateTime.UtcNow;
+        
+        await database.SaveChangesAsync();
+        
+        return existingWiki;
+    }
+
+    public async Task<bool> Delete(Ulid id)
+    {
+        var existingWiki = await database.Wikis.FirstOrDefaultAsync(w => w.Id == id);
+        if (existingWiki is null) return false;
+        
+        database.Wikis.Remove(existingWiki);
+        await database.SaveChangesAsync();
+        
+        return true;
     }
 }

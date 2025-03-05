@@ -105,7 +105,7 @@ namespace Projeli.WikiService.Api.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Projeli.WikiService.Domain.Models.Member", b =>
+            modelBuilder.Entity("Projeli.WikiService.Domain.Models.WikiMember", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -258,7 +258,7 @@ namespace Projeli.WikiService.Api.Migrations
 
             modelBuilder.Entity("MemberPage", b =>
                 {
-                    b.HasOne("Projeli.WikiService.Domain.Models.Member", null)
+                    b.HasOne("Projeli.WikiService.Domain.Models.WikiMember", null)
                         .WithMany()
                         .HasForeignKey("EditorsId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -273,7 +273,7 @@ namespace Projeli.WikiService.Api.Migrations
 
             modelBuilder.Entity("MemberPageVersion", b =>
                 {
-                    b.HasOne("Projeli.WikiService.Domain.Models.Member", null)
+                    b.HasOne("Projeli.WikiService.Domain.Models.WikiMember", null)
                         .WithMany()
                         .HasForeignKey("EditorsId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -297,7 +297,7 @@ namespace Projeli.WikiService.Api.Migrations
                     b.Navigation("Wiki");
                 });
 
-            modelBuilder.Entity("Projeli.WikiService.Domain.Models.Member", b =>
+            modelBuilder.Entity("Projeli.WikiService.Domain.Models.WikiMember", b =>
                 {
                     b.HasOne("Projeli.WikiService.Domain.Models.Wiki", "Wiki")
                         .WithMany("Members")

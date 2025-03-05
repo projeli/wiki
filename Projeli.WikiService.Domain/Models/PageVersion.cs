@@ -30,5 +30,5 @@ public class PageVersion
     
     
     public Page Page { get; set; }
-    public List<Member> Editors { get; set; } = [];
+    public List<WikiMember> Editors { get; set; } = [];
 }

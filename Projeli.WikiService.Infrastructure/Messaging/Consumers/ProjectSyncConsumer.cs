@@ -6,19 +6,16 @@ using Projeli.WikiService.Application.Services.Interfaces;
 
 namespace Projeli.WikiService.Infrastructure.Messaging.Consumers;
 
-public class ProjectSyncConsumer : IConsumer<ProjectSyncEvent>
+public class ProjectSyncConsumer(IWikiService wikiService) : IConsumer<ProjectSyncEvent>
 {
     public async Task Consume(ConsumeContext<ProjectSyncEvent> context)
     {
-        var wikiService = context.GetServiceOrCreateInstance<IWikiService>();
-
         var wikiDto = new WikiDto
         {
             ProjectId = context.Message.ProjectId,
             ProjectName = context.Message.ProjectName,
             ProjectSlug = context.Message.ProjectSlug,
-            IsPublished = false,
-            Members = context.Message.Members.Select(x => new MemberDto
+            Members = context.Message.Members.Select(x => new WikiMemberDto
             {
                 UserId = x.UserId,
                 IsOwner = x.IsOwner
@@ -36,7 +33,7 @@ public class ProjectSyncConsumer : IConsumer<ProjectSyncEvent>
             existingWiki.Data.ProjectSlug = wikiDto.ProjectSlug;
             existingWiki.Data.Members = wikiDto.Members;
             
-            wikiResult = await wikiService.Update(existingWiki.Data.Id, existingWiki.Data, null, true);
+            wikiResult = await wikiService.UpdateProjectInfo(existingWiki.Data.Id, existingWiki.Data);
         }
     }
 }

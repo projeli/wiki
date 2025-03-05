@@ -21,7 +21,7 @@ public class Page
     
     public string? Content { get; set; }
     
-    public bool IsPublished { get; set; }
+    public PageStatus Status { get; set; }
     
     public DateTime CreatedAt { get; set; }
     
@@ -33,5 +33,5 @@ public class Page
     public Wiki Wiki { get; set; }
     public List<Category> Categories { get; set; } = [];
     public List<PageVersion> Versions { get; set; } = [];
-    public List<Member> Editors { get; set; } = [];
+    public List<WikiMember> Editors { get; set; } = [];
 }

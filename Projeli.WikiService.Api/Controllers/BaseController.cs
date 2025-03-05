@@ -5,7 +5,7 @@ namespace Projeli.WikiService.Api.Controllers;
 
 public abstract class BaseController : ControllerBase
 {
-    protected IActionResult HandleResult<T>(IResult<T> result)
+    protected IActionResult HandleResult(IResult<object?> result)
     {
         if (result.Success)
         {

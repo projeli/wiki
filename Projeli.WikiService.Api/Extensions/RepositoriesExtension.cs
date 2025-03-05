@@ -8,5 +8,7 @@ public static class RepositoriesExtension
     public static void AddWikiServiceRepositories(this IServiceCollection services)
     {
         services.AddScoped<IWikiRepository, WikiRepository>();
+        services.AddScoped<IWikiConfigRepository, WikiConfigRepository>();
+        services.AddScoped<IWikiCategoryRepository, WikiCategoryRepository>();
     }
 }

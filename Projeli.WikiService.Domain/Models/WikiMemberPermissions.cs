@@ -13,6 +13,10 @@ public enum WikiMemberPermissions : ulong
     
     DeleteWikiPages = (ulong) 1 << 20,
     
+    CreateWikiCategories = (ulong) 1 << 21,
+    EditWikiCategories = (ulong) 1 << 22,
+    DeleteWikiCategories = (ulong) 1 << 30,
+    
     DeleteWiki = (ulong) 1 << 63,
     All = ulong.MaxValue
 }

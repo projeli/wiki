@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Projeli.WikiService.Domain.Models;
@@ -18,7 +19,14 @@ public class Wiki
     [Required, StringLength(32)]
     public string ProjectSlug { get; set; }
     
-    public bool IsPublished { get; set; }
+    [StringLength(32)]
+    public string? Name { get; set; }
+    
+    public string? Content { get; set; }
+    
+    public WikiConfig Config { get; set; }
+    
+    public WikiStatus Status { get; set; }
  
     public DateTime CreatedAt { get; set; }
     
@@ -26,7 +34,7 @@ public class Wiki
     
     public DateTime? PublishedAt { get; set; }
     
-    public List<Member> Members { get; set; } = [];
+    public List<WikiMember> Members { get; set; } = [];
     public List<Category> Categories { get; set; } = [];
     public List<Page> Pages { get; set; } = [];
 }

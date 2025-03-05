@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Projeli.WikiService.Domain.Models;
 
 [Index(nameof(WikiId), nameof(UserId), IsUnique = true)]
-public class Member
+public class WikiMember
 {
     [Key]
     public Ulid Id { get; set; }

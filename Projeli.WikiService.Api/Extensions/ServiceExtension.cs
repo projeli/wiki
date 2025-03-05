@@ -7,5 +7,7 @@ public static class ServiceExtension
     public static void AddWikiServiceServices(this IServiceCollection services)
     {
         services.AddScoped<IWikiService, Application.Services.WikiService>();
+        services.AddScoped<IWikiConfigService, Application.Services.WikiConfigService>();
+        services.AddScoped<IWikiCategoryService, Application.Services.WikiCategoryService>();
     }
 }

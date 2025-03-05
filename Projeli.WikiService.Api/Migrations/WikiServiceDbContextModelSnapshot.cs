@@ -17,7 +17,7 @@ namespace Projeli.WikiService.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -37,22 +37,7 @@ namespace Projeli.WikiService.Api.Migrations
                     b.ToTable("CategoryPage");
                 });
 
-            modelBuilder.Entity("MemberPage", b =>
-                {
-                    b.Property<Guid>("EditorsId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PagesId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("EditorsId", "PagesId");
-
-                    b.HasIndex("PagesId");
-
-                    b.ToTable("MemberPage");
-                });
-
-            modelBuilder.Entity("MemberPageVersion", b =>
+            modelBuilder.Entity("PageVersionWikiMember", b =>
                 {
                     b.Property<Guid>("EditorsId")
                         .HasColumnType("uuid");
@@ -64,7 +49,22 @@ namespace Projeli.WikiService.Api.Migrations
 
                     b.HasIndex("PageVersionsId");
 
-                    b.ToTable("MemberPageVersion");
+                    b.ToTable("PageVersionWikiMember");
+                });
+
+            modelBuilder.Entity("PageWikiMember", b =>
+                {
+                    b.Property<Guid>("EditorsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PagesId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("EditorsId", "PagesId");
+
+                    b.HasIndex("PagesId");
+
+                    b.ToTable("PageWikiMember");
                 });
 
             modelBuilder.Entity("Projeli.WikiService.Domain.Models.Category", b =>
@@ -100,30 +100,6 @@ namespace Projeli.WikiService.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("Projeli.WikiService.Domain.Models.Member", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Permissions")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<Guid>("WikiId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WikiId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("Members");
                 });
 
             modelBuilder.Entity("Projeli.WikiService.Domain.Models.Page", b =>
@@ -215,17 +191,34 @@ namespace Projeli.WikiService.Api.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Content")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsPublished")
-                        .HasColumnType("boolean");
+                    b.Property<string>("Name")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ProjectSlug")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -236,6 +229,33 @@ namespace Projeli.WikiService.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Wikis");
+                });
+
+            modelBuilder.Entity("Projeli.WikiService.Domain.Models.WikiMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Permissions")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("WikiId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WikiId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("Members");
                 });
 
             modelBuilder.Entity("CategoryPage", b =>
@@ -253,24 +273,9 @@ namespace Projeli.WikiService.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MemberPage", b =>
+            modelBuilder.Entity("PageVersionWikiMember", b =>
                 {
-                    b.HasOne("Projeli.WikiService.Domain.Models.Member", null)
-                        .WithMany()
-                        .HasForeignKey("EditorsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Projeli.WikiService.Domain.Models.Page", null)
-                        .WithMany()
-                        .HasForeignKey("PagesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MemberPageVersion", b =>
-                {
-                    b.HasOne("Projeli.WikiService.Domain.Models.Member", null)
+                    b.HasOne("Projeli.WikiService.Domain.Models.WikiMember", null)
                         .WithMany()
                         .HasForeignKey("EditorsId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -283,21 +288,25 @@ namespace Projeli.WikiService.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PageWikiMember", b =>
+                {
+                    b.HasOne("Projeli.WikiService.Domain.Models.WikiMember", null)
+                        .WithMany()
+                        .HasForeignKey("EditorsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Projeli.WikiService.Domain.Models.Page", null)
+                        .WithMany()
+                        .HasForeignKey("PagesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Projeli.WikiService.Domain.Models.Category", b =>
                 {
                     b.HasOne("Projeli.WikiService.Domain.Models.Wiki", "Wiki")
                         .WithMany("Categories")
-                        .HasForeignKey("WikiId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Wiki");
-                });
-
-            modelBuilder.Entity("Projeli.WikiService.Domain.Models.Member", b =>
-                {
-                    b.HasOne("Projeli.WikiService.Domain.Models.Wiki", "Wiki")
-                        .WithMany("Members")
                         .HasForeignKey("WikiId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -325,6 +334,111 @@ namespace Projeli.WikiService.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Page");
+                });
+
+            modelBuilder.Entity("Projeli.WikiService.Domain.Models.Wiki", b =>
+                {
+                    b.OwnsOne("Projeli.WikiService.Domain.Models.WikiConfig", "Config", b1 =>
+                        {
+                            b1.Property<Guid>("WikiId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("WikiId");
+
+                            b1.ToTable("Wikis");
+
+                            b1.ToJson("Config");
+
+                            b1.WithOwner()
+                                .HasForeignKey("WikiId");
+
+                            b1.OwnsOne("Projeli.WikiService.Domain.Models.WikiConfig+WikiConfigSidebar", "Sidebar", b2 =>
+                                {
+                                    b2.Property<Guid>("WikiConfigWikiId")
+                                        .HasColumnType("uuid");
+
+                                    b2.HasKey("WikiConfigWikiId");
+
+                                    b2.ToTable("Wikis");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("WikiConfigWikiId");
+
+                                    b2.OwnsMany("Projeli.WikiService.Domain.Models.WikiConfig+WikiConfigSidebar+WikiConfigSidebarItem", "Items", b3 =>
+                                        {
+                                            b3.Property<Guid>("WikiConfigSidebarWikiConfigWikiId")
+                                                .HasColumnType("uuid");
+
+                                            b3.Property<int>("Id")
+                                                .ValueGeneratedOnAdd()
+                                                .HasColumnType("integer");
+
+                                            b3.Property<string>("Href")
+                                                .IsRequired()
+                                                .HasColumnType("text");
+
+                                            b3.Property<string>("Title")
+                                                .IsRequired()
+                                                .HasColumnType("text");
+
+                                            b3.HasKey("WikiConfigSidebarWikiConfigWikiId", "Id");
+
+                                            b3.ToTable("Wikis");
+
+                                            b3.WithOwner()
+                                                .HasForeignKey("WikiConfigSidebarWikiConfigWikiId");
+
+                                            b3.OwnsMany("Projeli.WikiService.Domain.Models.WikiConfig+WikiConfigSidebar+WikiConfigSidebarItem.Category#WikiConfigSidebarItem", "Category", b4 =>
+                                                {
+                                                    b4.Property<Guid>("WikiConfigSidebarItemWikiConfigSidebarWikiConfigWikiId")
+                                                        .HasColumnType("uuid");
+
+                                                    b4.Property<int>("WikiConfigSidebarItemId")
+                                                        .HasColumnType("integer");
+
+                                                    b4.Property<int>("Id")
+                                                        .ValueGeneratedOnAdd()
+                                                        .HasColumnType("integer");
+
+                                                    b4.Property<string>("Href")
+                                                        .IsRequired()
+                                                        .HasColumnType("text");
+
+                                                    b4.Property<string>("Title")
+                                                        .IsRequired()
+                                                        .HasColumnType("text");
+
+                                                    b4.HasKey("WikiConfigSidebarItemWikiConfigSidebarWikiConfigWikiId", "WikiConfigSidebarItemId", "Id");
+
+                                                    b4.ToTable("Wikis");
+
+                                                    b4.WithOwner()
+                                                        .HasForeignKey("WikiConfigSidebarItemWikiConfigSidebarWikiConfigWikiId", "WikiConfigSidebarItemId");
+                                                });
+
+                                            b3.Navigation("Category");
+                                        });
+
+                                    b2.Navigation("Items");
+                                });
+
+                            b1.Navigation("Sidebar")
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Config")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Projeli.WikiService.Domain.Models.WikiMember", b =>
+                {
+                    b.HasOne("Projeli.WikiService.Domain.Models.Wiki", "Wiki")
+                        .WithMany("Members")
+                        .HasForeignKey("WikiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Wiki");
                 });
 
             modelBuilder.Entity("Projeli.WikiService.Domain.Models.Page", b =>

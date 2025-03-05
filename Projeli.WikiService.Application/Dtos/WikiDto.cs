@@ -1,4 +1,6 @@
-﻿namespace Projeli.WikiService.Application.Dtos;
+﻿using Projeli.WikiService.Domain.Models;
+
+namespace Projeli.WikiService.Application.Dtos;
 
 public class WikiDto
 {
@@ -10,7 +12,13 @@ public class WikiDto
     
     public string ProjectSlug { get; set; }
     
-    public bool IsPublished { get; set; }
+    public string? Name { get; set; }
+    
+    public string? Content { get; set; }
+    
+    public WikiConfigDto Config { get; set; }
+    
+    public WikiStatus Status { get; set; }
  
     public DateTime CreatedAt { get; set; }
     
@@ -18,7 +26,7 @@ public class WikiDto
     
     public DateTime? PublishedAt { get; set; }
     
-    public List<MemberDto> Members { get; set; } = [];
+    public List<WikiMemberDto> Members { get; set; } = [];
     public List<CategoryDto> Categories { get; set; } = [];
     public List<PageDto> Pages { get; set; } = [];
 }

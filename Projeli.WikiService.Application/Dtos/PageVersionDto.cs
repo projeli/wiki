@@ -24,5 +24,5 @@ public class PageVersionDto
     
     
     public PageDto Page { get; set; }
-    public List<MemberDto> Editors { get; set; } = [];
+    public List<WikiMemberDto> Editors { get; set; } = [];
 }

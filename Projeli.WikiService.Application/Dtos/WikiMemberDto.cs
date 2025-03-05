@@ -2,7 +2,7 @@
 
 namespace Projeli.WikiService.Application.Dtos;
 
-public class MemberDto
+public class WikiMemberDto
 {
     public Ulid Id { get; set; }
     

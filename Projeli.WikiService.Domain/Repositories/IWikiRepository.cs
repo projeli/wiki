@@ -9,4 +9,7 @@ public interface IWikiRepository
     Task<Wiki?> GetByProjectSlug(string projectSlug, string? userId, bool force = false);
     Task<Wiki?> Create(Wiki wiki);
     Task<Wiki?> Update(Wiki wiki);
+    Task<Wiki?> UpdateStatus(Ulid id, WikiStatus status);
+    Task<Wiki?> UpdateContent(Ulid id, string content);
+    Task<bool> Delete(Ulid id);
 }

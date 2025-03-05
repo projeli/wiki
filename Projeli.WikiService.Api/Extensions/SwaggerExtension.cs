@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Projeli.WikiService.Api.Extensions;
 
@@ -49,6 +50,7 @@ public static class SwaggerExtension
             };
 
             options.AddSecurityRequirement(securityRequirement);
+            options.SchemaFilter<UlidSchemaFilter>();
         });
     }
     
@@ -61,5 +63,18 @@ public static class SwaggerExtension
                 options.SwaggerEndpoint($"/swagger/v2/swagger.json", "v2");
             }
         );
+    }
+    
+    public class UlidSchemaFilter : ISchemaFilter
+    {
+        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        {
+            if (context.Type == typeof(Ulid))
+            {
+                schema.Type = "string";
+                schema.Format = null; // Optional: You could set a custom format like "ulid" if desired
+                schema.Example = new Microsoft.OpenApi.Any.OpenApiString("01H3X9K7P5V8R2M4N6Q0T1J2B");
+            }
+        }
     }
 }

@@ -11,7 +11,7 @@ builder.Services.AddWikiServiceRepositories();
 builder.Services.AddControllers().AddWikiServiceJson();
 builder.Services.AddWikiServiceDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddWikiServiceAuthentication(builder.Configuration, builder.Environment);
-builder.Services.UseWikiServiceRabbitMq();
+builder.Services.UseWikiServiceRabbitMq(builder.Configuration);
 builder.Services.AddAutoMapper(Assembly.GetAssembly(typeof(WikiProfile)));
 
 var app = builder.Build();
