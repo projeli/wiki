@@ -10,9 +10,10 @@ public class WikiConfigDto
         
         public class WikiConfigSidebarItemDto
         {
+            public string Index { get; set; }
             public string Title { get; set; }
-            public string? Href { get; set; }
-            public List<WikiConfigSidebarItemDto>? Category { get; set; } 
+            public string? Slug { get; set; }
+            public List<WikiConfigSidebarItemDto>? Category { get; set; }
         }
     }
 }

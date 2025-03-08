@@ -11,5 +11,6 @@ public interface IWikiRepository
     Task<Wiki?> Update(Wiki wiki);
     Task<Wiki?> UpdateStatus(Ulid id, WikiStatus status);
     Task<Wiki?> UpdateContent(Ulid id, string content);
+    Task<Wiki?> UpdateSidebar(Ulid id, WikiConfig.WikiConfigSidebar sidebar);
     Task<bool> Delete(Ulid id);
 }

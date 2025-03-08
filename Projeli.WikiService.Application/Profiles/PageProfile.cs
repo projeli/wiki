@@ -14,8 +14,10 @@ public class PageProfile : Profile
         CreateMap<PageDto, Page>();
 
         CreateMap<PageDto, SimplePageResponse>();
+        CreateMap<PageDto, PageResponse>();
 
         CreateMap<CreatePageRequest, PageDto>();
         CreateMap<UpdatePageRequest, PageDto>();
+        CreateMap<UpdatePageContentRequest, PageDto>();
     }
 }

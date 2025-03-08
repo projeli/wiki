@@ -20,6 +20,18 @@ public partial class WikiCategoryService(
         return new Result<List<CategoryDto>>(mapper.Map<List<CategoryDto>>(categories));
     }
 
+    public async Task<IResult<List<CategoryDto>>> GetByProjectId(Ulid projectId, string? userId)
+    {
+        var categories = await wikiCategoryRepository.GetByProjectId(projectId, userId);
+        return new Result<List<CategoryDto>>(mapper.Map<List<CategoryDto>>(categories));
+    }
+
+    public async Task<IResult<List<CategoryDto>>> GetByProjectSlug(string wikiId, string? userId)
+    {
+        var categories = await wikiCategoryRepository.GetByProjectSlug(wikiId, userId);
+        return new Result<List<CategoryDto>>(mapper.Map<List<CategoryDto>>(categories));
+    }
+
     public async Task<IResult<CategoryDto?>> Create(Ulid wikiId, CategoryDto categoryDto, string userId)
     {
         var existingWiki = await wikiRepository.GetById(wikiId, userId);

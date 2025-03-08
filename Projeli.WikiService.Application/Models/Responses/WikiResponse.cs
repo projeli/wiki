@@ -29,4 +29,5 @@ public class WikiResponse
     
     public List<SimpleWikiMemberResponse> Members { get; set; } = [];
     public List<SimpleCategoryResponse> Categories { get; set; } = [];
+    public List<SimplePageResponse> Pages { get; set; } = [];
 }

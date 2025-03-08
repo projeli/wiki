@@ -24,6 +24,24 @@ public class WikiCategoryController(IWikiCategoryService wikiCategoryService, IM
             : result);
     }
     
+    [HttpGet("project")]
+    public async Task<IActionResult> GetCategoriesByProject([FromRoute] string wikiId)
+    {
+        IResult<List<CategoryDto>> result;
+        if (Ulid.TryParse(wikiId, out var projectId))
+        {
+            result = await wikiCategoryService.GetByProjectId(projectId, User.TryGetId());
+        } 
+        else
+        {
+            result = await wikiCategoryService.GetByProjectSlug(wikiId, User.TryGetId());
+        }
+        
+        return HandleResult(result.Success
+            ? new Result<List<SimpleCategoryResponse>>(mapper.Map<List<SimpleCategoryResponse>>(result.Data))
+            : result);
+    }
+    
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> CreateCategory([FromRoute] Ulid wikiId, [FromBody] CreateCategoryRequest request)

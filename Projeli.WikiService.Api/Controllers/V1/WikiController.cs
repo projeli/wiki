@@ -71,6 +71,16 @@ public class WikiController(IWikiService wikiService, IBus bus, IMapper mapper) 
             : Result<WikiResponse>.NotFound());
     }
     
+    [HttpPut("{id}/sidebar")]
+    [Authorize]
+    public async Task<IActionResult> UpdateWikiSidebar([FromRoute] Ulid id, [FromBody] UpdateWikiSidebarRequest request)
+    {
+        var result = await wikiService.UpdateSidebar(id, request.Sidebar, User.GetId());
+        return HandleResult(result.Success
+            ? new Result<WikiResponse>(mapper.Map<WikiResponse>(result.Data))
+            : Result<WikiResponse>.NotFound());
+    }
+    
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<IActionResult> DeleteWiki([FromRoute] Ulid id)

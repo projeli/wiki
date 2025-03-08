@@ -13,5 +13,6 @@ public interface IWikiService
     Task<IResult<WikiDto?>> UpdateProjectInfo(Ulid id, WikiDto wikiDto);
     Task<IResult<WikiDto?>> UpdateStatus(Ulid id, WikiStatus status, string userId);
     Task<IResult<WikiDto?>> UpdateContent(Ulid id, string content, string userId);
+    Task<IResult<WikiDto?>> UpdateSidebar(Ulid id, WikiConfigDto.WikiConfigSidebarDto sidebar, string userId);
     Task<IResult<WikiDto?>> Delete(Ulid id, string userId);
 }

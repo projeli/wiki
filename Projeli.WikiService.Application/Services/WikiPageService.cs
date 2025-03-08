@@ -17,6 +17,66 @@ public partial class WikiPageService(IWikiPageRepository wikiPageRepository, IWi
         return new Result<List<PageDto>>(mapper.Map<List<PageDto>>(pages));
     }
 
+    public async Task<IResult<List<PageDto>>> GetByProjectId(Ulid projectId, string? userId)
+    {
+        var pages = await wikiPageRepository.GetByProjectId(projectId, userId);
+        return new Result<List<PageDto>>(mapper.Map<List<PageDto>>(pages));
+    }
+
+    public async Task<IResult<List<PageDto>>> GetByProjectSlug(string wikiId, string? userId)
+    {
+        var pages = await wikiPageRepository.GetByProjectSlug(wikiId, userId);
+        return new Result<List<PageDto>>(mapper.Map<List<PageDto>>(pages));
+    }
+
+    public async Task<IResult<PageDto?>> GetById(Ulid wikiId, Ulid pageId, string? userId)
+    {
+        var page = await wikiPageRepository.GetById(wikiId, pageId, userId);
+        return page is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(page))
+            : Result<PageDto>.NotFound();
+    }
+
+    public async Task<IResult<PageDto?>> GetBySlug(Ulid wikiId, string pageSlug, string? userId)
+    {
+        var page = await wikiPageRepository.GetBySlug(wikiId, pageSlug, userId);
+        return page is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(page))
+            : Result<PageDto>.NotFound();
+    }
+
+    public async Task<IResult<PageDto?>> GetByProjectIdAndId(Ulid projectId, Ulid pageId, string? userId)
+    {
+        var page = await wikiPageRepository.GetByProjectIdAndId(projectId, pageId, userId);
+        return page is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(page))
+            : Result<PageDto>.NotFound();
+    }
+
+    public async Task<IResult<PageDto?>> GetByProjectIdAndSlug(Ulid projectId, string pageSlug, string? userId)
+    {
+        var page = await wikiPageRepository.GetByProjectIdAndSlug(projectId, pageSlug, userId);
+        return page is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(page))
+            : Result<PageDto>.NotFound();
+    }
+
+    public async Task<IResult<PageDto?>> GetByProjectSlugAndId(string projectSlug, Ulid pageId, string? userId)
+    {
+        var page = await wikiPageRepository.GetByProjectSlugAndId(projectSlug, pageId, userId);
+        return page is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(page))
+            : Result<PageDto>.NotFound();
+    }
+
+    public async Task<IResult<PageDto?>> GetByProjectSlugAndSlug(string projectSlug, string pageSlug, string? userId)
+    {
+        var page = await wikiPageRepository.GetByProjectSlugAndSlug(projectSlug, pageSlug, userId);
+        return page is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(page))
+            : Result<PageDto>.NotFound();
+    }
+
     public async Task<IResult<PageDto?>> Create(Ulid wikiId, PageDto pageDto, string userId)
     {
         var existingWiki = await wikiRepository.GetById(wikiId, userId);
@@ -67,6 +127,87 @@ public partial class WikiPageService(IWikiPageRepository wikiPageRepository, IWi
         if (!validationResult.Success) return validationResult;
         
         var updatedPage = await wikiPageRepository.Update(wikiId, page);
+        
+        return updatedPage is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(updatedPage))
+            : Result<PageDto>.Fail("Failed to update page.");
+    }
+
+    public async Task<IResult<PageDto?>> UpdateContent(Ulid wikiId, Ulid pageId, string content, string userId)
+    {
+        var existingWiki = await wikiRepository.GetById(wikiId, userId);
+        if (existingWiki is null) return Result<PageDto>.NotFound();
+        
+        var member = existingWiki.Members.FirstOrDefault(m => m.UserId == userId);
+        if (member is null ||
+            (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.EditWikiPages)))
+        {
+            throw new ForbiddenException("You do not have permission to update pages for this wiki.");
+        }
+        
+        var existingPage = await wikiPageRepository.GetById(wikiId, pageId, userId);
+        if (existingPage is null) return Result<PageDto>.NotFound();
+        
+        existingPage.Content = content;
+        existingPage.UpdatedAt = DateTime.UtcNow;
+        
+        var updatedPage = await wikiPageRepository.UpdateContent(wikiId, existingPage);
+        
+        return updatedPage is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(updatedPage))
+            : Result<PageDto>.Fail("Failed to update page.");
+    }
+
+    public async Task<IResult<PageDto?>> UpdateCategories(Ulid wikiId, Ulid pageId, List<Ulid> categoryIds, string userId)
+    {
+        var existingWiki = await wikiRepository.GetById(wikiId, userId);
+        if (existingWiki is null) return Result<PageDto>.NotFound();
+        
+        var member = existingWiki.Members.FirstOrDefault(m => m.UserId == userId);
+        if (member is null ||
+            (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.EditWikiPages)))
+        {
+            throw new ForbiddenException("You do not have permission to update pages for this wiki.");
+        }
+        
+        var existingPage = await wikiPageRepository.GetById(wikiId, pageId, userId);
+        if (existingPage is null) return Result<PageDto>.NotFound();
+        
+        existingPage.UpdatedAt = DateTime.UtcNow;
+        
+        var updatedPage = await wikiPageRepository.UpdateCategories(wikiId, existingPage, categoryIds);
+        
+        return updatedPage is not null
+            ? new Result<PageDto>(mapper.Map<PageDto>(updatedPage))
+            : Result<PageDto>.Fail("Failed to update page.");
+    }
+
+    public async Task<IResult<PageDto?>> UpdateStatus(Ulid wikiId, Ulid pageId, PageStatus status, string userId)
+    {
+        var existingWiki = await wikiRepository.GetById(wikiId, userId);
+        if (existingWiki is null) return Result<PageDto>.NotFound();
+        
+        var member = existingWiki.Members.FirstOrDefault(m => m.UserId == userId);
+        if (member is null ||
+            (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.PublishWikiPages)))
+        {
+            throw new ForbiddenException("You do not have permission to update pages for this wiki.");
+        }
+        
+        var existingPage = await wikiPageRepository.GetById(wikiId, pageId, userId);
+        if (existingPage is null) return Result<PageDto>.NotFound();
+
+        switch (status)
+        {
+            case PageStatus.Draft:
+                return Result<PageDto>.Fail("Cannot set status to draft since it is the default status");
+            case PageStatus.Published when existingPage.Status != PageStatus.Draft && existingPage.Status != PageStatus.Archived:
+                return Result<PageDto>.Fail("Cannot set status to published");
+            case PageStatus.Archived when existingPage.Status != PageStatus.Published:
+                return Result<PageDto>.Fail("Cannot set status to archived");
+        }
+        
+        var updatedPage = await wikiPageRepository.UpdateStatus(wikiId, pageId, status);
         
         return updatedPage is not null
             ? new Result<PageDto>(mapper.Map<PageDto>(updatedPage))

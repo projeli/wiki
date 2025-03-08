@@ -10,8 +10,9 @@ public class WikiConfig
         
         public class WikiConfigSidebarItem
         {
+            public string Index { get; set; }
             public string Title { get; set; }
-            public string? Href { get; set; }
+            public string? Slug { get; set; }
             public List<WikiConfigSidebarItem>? Category { get; set; } 
         }
     }

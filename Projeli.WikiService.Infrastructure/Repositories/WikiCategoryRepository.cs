@@ -12,7 +12,32 @@ public class WikiCategoryRepository(WikiServiceDbContext database) : IWikiCatego
         return database.Wikis
             .Include(x => x.Categories)
             .Include(x => x.Members)
-            .Where(x => x.Id == wikiId && (x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
+            .Where(x => x.Id == wikiId &&
+                        (x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
+            .SelectMany(x => x.Categories)
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+    }
+
+    public Task<List<Category>> GetByProjectId(Ulid projectId, string? userId)
+    {
+        return database.Wikis
+            .Include(x => x.Categories)
+            .Include(x => x.Members)
+            .Where(x => x.ProjectId == projectId &&
+                        (x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
+            .SelectMany(x => x.Categories)
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+    }
+
+    public Task<List<Category>> GetByProjectSlug(string wikiId, string? userId)
+    {
+        return database.Wikis
+            .Include(x => x.Categories)
+            .Include(x => x.Members)
+            .Where(x => x.ProjectSlug == wikiId &&
+                        (x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
             .SelectMany(x => x.Categories)
             .OrderBy(x => x.Name)
             .ToListAsync();
@@ -23,7 +48,8 @@ public class WikiCategoryRepository(WikiServiceDbContext database) : IWikiCatego
         return database.Wikis
             .Include(x => x.Categories)
             .Include(x => x.Members)
-            .Where(x => x.Id == wikiId && (force || x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
+            .Where(x => x.Id == wikiId &&
+                        (force || x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
             .SelectMany(x => x.Categories)
             .FirstOrDefaultAsync(x => x.Id == categoryId);
     }
@@ -33,7 +59,8 @@ public class WikiCategoryRepository(WikiServiceDbContext database) : IWikiCatego
         return database.Wikis
             .Include(x => x.Categories)
             .Include(x => x.Members)
-            .Where(x => x.Id == wikiId && (force || x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
+            .Where(x => x.Id == wikiId &&
+                        (force || x.Status == WikiStatus.Published || x.Members.Any(y => y.UserId == userId)))
             .SelectMany(x => x.Categories)
             .FirstOrDefaultAsync(x => x.Slug == slug);
     }

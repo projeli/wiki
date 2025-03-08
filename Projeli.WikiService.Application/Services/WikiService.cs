@@ -126,6 +126,59 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             : Result<WikiDto>.Fail("Failed to update project");
     }
 
+    public async Task<IResult<WikiDto?>> UpdateSidebar(Ulid id, WikiConfigDto.WikiConfigSidebarDto sidebar, string userId)
+    {
+        var existingWiki = await repository.GetById(id, userId);
+        if (existingWiki is null) return Result<WikiDto>.NotFound();
+
+        var member = existingWiki.Members.FirstOrDefault(member => member.UserId == userId);
+        if (member is null || (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.EditWiki)))
+        {
+            throw new ForbiddenException("You do not have permission to edit this wiki");
+        }
+        
+        for (var i = sidebar.Items.Count - 1; i >= 0; i--)
+        {
+            var item = sidebar.Items[i];
+    
+            if (item.Slug is not null)
+            {
+                item.Category = null;
+            }
+            else if (item.Category is not null)
+            {
+                item.Slug = null;
+                item.Index = Ulid.NewUlid().ToString();
+
+                if (item.Category != null)
+                {
+                    for (var j = item.Category.Count - 1; j >= 0; j--)
+                    {
+                        var subItem = item.Category[j];
+                        if (subItem.Slug is not null)
+                        {
+                            subItem.Category = null;
+                        }
+                        else
+                        {
+                            item.Category.RemoveAt(j);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                sidebar.Items.RemoveAt(i);
+            }
+        }
+
+        var updatedWiki = await repository.UpdateSidebar(id, mapper.Map<WikiConfig.WikiConfigSidebar>(sidebar));
+
+        return updatedWiki is not null
+            ? new Result<WikiDto>(mapper.Map<WikiDto>(updatedWiki))
+            : Result<WikiDto>.Fail("Failed to update project");
+    }
+
     public async Task<IResult<WikiDto?>> Delete(Ulid id, string userId)
     {
         var existingWiki = await repository.GetById(id, userId);

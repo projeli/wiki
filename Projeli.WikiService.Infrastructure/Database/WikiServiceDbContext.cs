@@ -50,12 +50,14 @@ public class WikiServiceDbContext(DbContextOptions<WikiServiceDbContext> options
                     {
                         a.OwnsMany(b => b.Items, c =>
                         {
-                            c.Property(x => x.Title).IsRequired();
-                            c.Property(x => x.Href).IsRequired();
-                            c.OwnsMany(x => x.Category, x =>
+                            c.Property(d => d.Index).IsRequired();
+                            c.Property(d => d.Title).IsRequired();
+                            c.Property(d => d.Slug).IsRequired();
+                            c.OwnsMany(d => d.Category, e =>
                             {
-                                x.Property(x => x.Title).IsRequired();
-                                x.Property(x => x.Href).IsRequired();
+                                e.Property(f => f.Index).IsRequired();
+                                e.Property(f => f.Title).IsRequired();
+                                e.Property(f => f.Slug).IsRequired();
                             });
                         });
                     });

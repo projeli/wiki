@@ -5,6 +5,8 @@ namespace Projeli.WikiService.Domain.Repositories;
 public interface IWikiCategoryRepository
 {
     Task<List<Category>> GetByWikiId(Ulid wikiId, string? userId);
+    Task<List<Category>> GetByProjectId(Ulid projectId, string? userId);
+    Task<List<Category>> GetByProjectSlug(string wikiId, string? userId);
     Task<Category?> GetById(Ulid wikiId, Ulid categoryId, string? userId = null, bool force = false);
     Task<Category?> GetBySlug(Ulid wikiId, string slug, string? userId = null, bool force = false);
     Task<Category?> Create(Ulid wikiId, Category category);
