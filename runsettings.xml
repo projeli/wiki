@@ -5,8 +5,7 @@
             <DataCollector friendlyName="XPlat code coverage">
                 <Configuration>
                     <Format>cobertura</Format>
-                    <Include>[Projeli.WikiService.Domain]*,[Projeli.WikiService.Application]*,[Projeli.WikiService.Api.Controllers]*</Include>
-                </Configuration>
+                    <Include>[Projeli.WikiService.Domain]*,[Projeli.WikiService.Application]*,[Projeli.WikiService.Api]Projeli.WikiService.Api.Controllers.*</Include>                </Configuration>
             </DataCollector>
         </DataCollectors>
     </DataCollectionRunSettings>
