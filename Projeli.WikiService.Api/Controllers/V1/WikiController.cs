@@ -95,9 +95,7 @@ public class WikiController(IWikiService wikiService, IBus bus, IMapper mapper) 
     public async Task<IActionResult> DeleteWiki([FromRoute] Ulid id)
     {
         var result = await wikiService.Delete(id, User.GetId());
-        return HandleResult(result.Success
-            ? new Result<WikiResponse>(mapper.Map<WikiResponse>(result.Data))
-            : Result<WikiResponse>.NotFound());
+        return HandleResult(result);
     }
     
     private async Task<IResult<WikiDto?>> TryGetWikiWithRetry(
@@ -116,7 +114,7 @@ public class WikiController(IWikiService wikiService, IBus bus, IMapper mapper) 
 
             if (result.Data != null)
             {
-                return result;
+                break;
             }
 
             if (attempts < maxRetries)
