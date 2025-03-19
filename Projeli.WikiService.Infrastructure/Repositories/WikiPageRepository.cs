@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Projeli.Shared.Domain.Results;
 using Projeli.WikiService.Domain.Models;
 using Projeli.WikiService.Domain.Repositories;
 using Projeli.WikiService.Infrastructure.Database;
@@ -14,7 +13,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         return database.Pages
             .AsNoTracking()
             .Where(x => x.WikiId == wikiId &&
-                        (force || x.Wiki.Status == WikiStatus.Published ||
+                        (force || (x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          x.Wiki.Members.Any(y => y.UserId == userId)))
             .Select(SelectSimplePage)
             .OrderBy(x => x.Title)
@@ -26,7 +25,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         return database.Pages
             .AsNoTracking()
             .Where(x => x.Wiki.ProjectId == projectId &&
-                        (x.Wiki.Status == WikiStatus.Published ||
+                        ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
             .Select(SelectSimplePage)
             .OrderBy(x => x.Title)
@@ -38,7 +37,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         return database.Pages
             .AsNoTracking()
             .Where(x => x.Wiki.ProjectSlug == wikiId &&
-                        (x.Wiki.Status == WikiStatus.Published ||
+                        ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
             .Select(SelectSimplePage)
             .OrderBy(x => x.Title)
@@ -51,7 +50,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
             .AsNoTracking()
             .Where(x => x.WikiId == wikiId &&
                         x.Id == pageId &&
-                        (force || x.Wiki.Status == WikiStatus.Published ||
+                        (force || (x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          x.Wiki.Members.Any(y => y.UserId == userId)))
             .Select(SelectPageWithCategories)
             .FirstOrDefaultAsync();
@@ -63,7 +62,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
             .AsNoTracking()
             .Where(x => x.WikiId == wikiId &&
                         x.Slug == slug &&
-                        (force || x.Wiki.Status == WikiStatus.Published ||
+                        (force || (x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          x.Wiki.Members.Any(y => y.UserId == userId)))
             .Select(SelectPageWithCategories)
             .FirstOrDefaultAsync();
@@ -75,7 +74,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
             .AsNoTracking()
             .Where(x => x.Wiki.ProjectId == projectId &&
                         x.Id == pageId &&
-                        (x.Wiki.Status == WikiStatus.Published ||
+                        ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
             .Select(SelectPageWithCategories)
             .FirstOrDefaultAsync();
@@ -87,7 +86,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
             .AsNoTracking()
             .Where(x => x.Wiki.ProjectId == projectId &&
                         x.Slug == pageSlug &&
-                        (x.Wiki.Status == WikiStatus.Published ||
+                        ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
             .Select(SelectPageWithCategories)
             .FirstOrDefaultAsync();
@@ -99,7 +98,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
             .AsNoTracking()
             .Where(x => x.Wiki.ProjectSlug == projectSlug &&
                         x.Id == pageId &&
-                        (x.Wiki.Status == WikiStatus.Published ||
+                        ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
             .Select(SelectPageWithCategories)
             .FirstOrDefaultAsync();
@@ -111,7 +110,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
             .AsNoTracking()
             .Where(x => x.Wiki.ProjectSlug == projectSlug &&
                         x.Slug == pageSlug &&
-                        (x.Wiki.Status == WikiStatus.Published ||
+                        ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
             .Select(SelectPageWithCategories)
             .FirstOrDefaultAsync();
@@ -171,15 +170,15 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         if (existingPage == null) return null;
 
         existingPage.Categories.Clear();
-        
+
         var existingCategories = await database.Categories
             .Where(x => x.WikiId == wikiId && categoryIds.Contains(x.Id))
             .ToListAsync();
-        
+
         existingPage.Categories.AddRange(existingCategories);
-        
+
         await database.SaveChangesAsync();
-        
+
         return existingPage;
     }
 

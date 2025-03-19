@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Projeli.Shared.Application"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Projeli.Shared.Infrastructure", "..\shared\Projeli.Shared.Infrastructure\Projeli.Shared.Infrastructure.csproj", "{6FD50D18-175B-4C5A-84E1-58F82AAD6380}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Projeli.WikiService.Tests", "Projeli.WikiService.Tests\Projeli.WikiService.Tests.csproj", "{500968E0-4D41-4BD2-A572-3EE143EACE69}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{6FD50D18-175B-4C5A-84E1-58F82AAD6380}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FD50D18-175B-4C5A-84E1-58F82AAD6380}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6FD50D18-175B-4C5A-84E1-58F82AAD6380}.Release|Any CPU.Build.0 = Release|Any CPU
+		{500968E0-4D41-4BD2-A572-3EE143EACE69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{500968E0-4D41-4BD2-A572-3EE143EACE69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{500968E0-4D41-4BD2-A572-3EE143EACE69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{500968E0-4D41-4BD2-A572-3EE143EACE69}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

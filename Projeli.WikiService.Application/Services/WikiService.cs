@@ -34,6 +34,14 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             : Result<WikiDto?>.NotFound();
     }
 
+    public async Task<IResult<WikiStatisticsDto?>> GetStatistics(Ulid id, string? userId)
+    {
+        var result = await repository.GetStatistics(id, userId);
+        return result is not null
+            ? new Result<WikiStatisticsDto?>(mapper.Map<WikiStatisticsDto>(result))
+            : Result<WikiStatisticsDto?>.NotFound();
+    }
+
     public async Task<IResult<WikiDto?>> Create(WikiDto wikiDto)
     {
         wikiDto.Id = Ulid.NewUlid();

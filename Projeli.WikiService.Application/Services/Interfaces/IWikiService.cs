@@ -9,6 +9,7 @@ public interface IWikiService
     Task<IResult<WikiDto?>> GetById(Ulid id, string? userId, bool force = false);
     Task<IResult<WikiDto?>> GetByProjectId(Ulid projectId, string? userId, bool force = false);
     Task<IResult<WikiDto?>> GetByProjectSlug(string projectSlug, string? userId, bool force = false);
+    Task<IResult<WikiStatisticsDto?>> GetStatistics(Ulid id, string? userId);
     Task<IResult<WikiDto?>> Create(WikiDto wikiDto);
     Task<IResult<WikiDto?>> UpdateProjectInfo(Ulid id, WikiDto wikiDto);
     Task<IResult<WikiDto?>> UpdateStatus(Ulid id, WikiStatus status, string userId);

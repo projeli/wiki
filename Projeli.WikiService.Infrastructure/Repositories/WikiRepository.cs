@@ -37,6 +37,23 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
                 force || wiki.Status == WikiStatus.Published || wiki.Members.Any(member => member.UserId == userId));
     }
 
+    public async Task<WikiStatistics?> GetStatistics(Ulid id, string? userId)
+    {
+        return await database.Wikis
+            .AsNoTracking()
+            .Where(wiki =>
+                wiki.Id == id && (wiki.Status == WikiStatus.Published ||
+                                  wiki.Members.Any(member => member.UserId == userId)))
+            .Select(wiki => new WikiStatistics
+            {
+                WikiId = wiki.Id,
+                PageCount = wiki.Pages.Count,
+                MemberCount = wiki.Members.Count,
+                CategoryCount = wiki.Categories.Count
+            })
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Wiki?> Create(Wiki wiki)
     {
         var createdWiki = await database.Wikis.AddAsync(wiki);

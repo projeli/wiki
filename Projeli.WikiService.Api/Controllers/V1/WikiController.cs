@@ -51,6 +51,15 @@ public class WikiController(IWikiService wikiService, IBus bus, IMapper mapper) 
             : Result<WikiResponse>.NotFound());
     }
     
+    [HttpGet("{id}/statistics")]
+    public async Task<IActionResult> GetWikiStatistics([FromRoute] Ulid id)
+    {
+        var result = await wikiService.GetStatistics(id, User.TryGetId());
+        return HandleResult(result.Success
+            ? new Result<WikiStatisticsResponse>(mapper.Map<WikiStatisticsResponse>(result.Data))
+            : Result<WikiStatisticsResponse>.NotFound());
+    }
+    
     [HttpPut("{id}/status")]
     [Authorize]
     public async Task<IActionResult> UpdateWikiStatus([FromRoute] Ulid id, [FromBody] UpdateWikiStatusRequest request)
