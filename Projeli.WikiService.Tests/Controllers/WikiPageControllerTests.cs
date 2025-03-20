@@ -257,7 +257,7 @@ public class WikiPageControllerTests
 
         // Act
         var result = await _controller.UpdatePage(wikiId, pageId,
-            new UpdatePageRequest() { Title = pageDto.Title, Slug = pageDto.Slug });
+            new UpdatePageRequest { Title = pageDto.Title, Slug = pageDto.Slug });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -287,7 +287,7 @@ public class WikiPageControllerTests
 
         // Act
         var result =
-            await _controller.UpdatePageContent(wikiId, pageId, new UpdatePageContentRequest() { Content = content });
+            await _controller.UpdatePageContent(wikiId, pageId, new UpdatePageContentRequest { Content = content });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -318,7 +318,7 @@ public class WikiPageControllerTests
 
         // Act
         var result = await _controller.UpdatePageCategories(wikiId, pageId,
-            new UpdatePageCategoriesRequest() { CategoryIds = categoryIds });
+            new UpdatePageCategoriesRequest { CategoryIds = categoryIds });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -348,7 +348,7 @@ public class WikiPageControllerTests
 
         // Act
         var result =
-            await _controller.UpdatePageStatus(wikiId, pageId, new UpdatePageStatusRequest() { Status = status });
+            await _controller.UpdatePageStatus(wikiId, pageId, new UpdatePageStatusRequest { Status = status });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
