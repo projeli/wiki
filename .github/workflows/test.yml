@@ -1,4 +1,4 @@
-name: Test
+name: Test & Deploy
 
 on:
   push:
@@ -97,6 +97,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: wiki/Projeli.WikiService.Api
+          context: .
+          file: wiki/Projeli.WikiService.Api/Dockerfile
           push: true
           tags: daqem/projeli/wiki:latest
