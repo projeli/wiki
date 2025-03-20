@@ -100,4 +100,4 @@ jobs:
           context: .
           file: wiki/Projeli.WikiService.Api/Dockerfile
           push: true
-          tags: daqem/projeli/wiki:latest
+          tags: daqem/projeli:wiki
