@@ -298,12 +298,16 @@ public class WikiServiceTests
     }
     
     [Theory]
+    [InlineData(WikiStatus.Uncreated, WikiStatus.Uncreated)]
     [InlineData(WikiStatus.Uncreated, WikiStatus.Published)]
     [InlineData(WikiStatus.Uncreated, WikiStatus.Archived)]
+    [InlineData(WikiStatus.Draft, WikiStatus.Draft)]
     [InlineData(WikiStatus.Draft, WikiStatus.Uncreated)]
     [InlineData(WikiStatus.Draft, WikiStatus.Archived)]
+    [InlineData(WikiStatus.Published, WikiStatus.Published)]
     [InlineData(WikiStatus.Published, WikiStatus.Uncreated)]
     [InlineData(WikiStatus.Published, WikiStatus.Draft)]
+    [InlineData(WikiStatus.Archived, WikiStatus.Archived)]
     [InlineData(WikiStatus.Archived, WikiStatus.Uncreated)]
     [InlineData(WikiStatus.Archived, WikiStatus.Draft)]
     public async Task UpdateStatus_ReturnsFailedResult_WhenStatusNotAllowed(WikiStatus currentStatus, WikiStatus newStatus)
@@ -451,7 +455,43 @@ public class WikiServiceTests
         var wiki = new Wiki
         {
             Id = wikiId,
-            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWiki }]
+            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWiki }],
+        };
+        var newWikiSidebar = new WikiConfigDto.WikiConfigSidebarDto
+        {
+            Items =
+            [
+                new WikiConfigDto.WikiConfigSidebarDto.WikiConfigSidebarItemDto
+                {
+                    Index = "2",
+                    Title = "Test2",
+                    Category =
+                    [
+                        new WikiConfigDto.WikiConfigSidebarDto.WikiConfigSidebarItemDto
+                        {
+                            Index = "1",
+                            Title = "Test2",
+                            Slug = "test2"
+                        },
+                        new WikiConfigDto.WikiConfigSidebarDto.WikiConfigSidebarItemDto
+                        {
+                            Index = "1",
+                            Title = "Test3"
+                        }
+                    ]
+                },
+                new WikiConfigDto.WikiConfigSidebarDto.WikiConfigSidebarItemDto
+                {
+                    Index = "3",
+                    Title = "Test",
+                    Slug = "test"
+                },
+                new WikiConfigDto.WikiConfigSidebarDto.WikiConfigSidebarItemDto
+                {
+                    Index = "4",
+                    Title = "Test3"
+                }
+            ]
         };
         _repositoryMock.Setup(s => s.GetById(It.IsAny<Ulid>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(wiki);
@@ -459,7 +499,7 @@ public class WikiServiceTests
             .ReturnsAsync(wiki);
     
         // Act
-        var result = await _service.UpdateSidebar(wikiId, new WikiConfigDto.WikiConfigSidebarDto(), userId);
+        var result = await _service.UpdateSidebar(wikiId, newWikiSidebar, userId);
     
         // Assert
         Assert.NotNull(result);
