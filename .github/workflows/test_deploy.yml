@@ -75,6 +75,13 @@ jobs:
     
     steps:
       - uses: actions/checkout@v3
+        with:
+          path: wiki
+
+      - uses: actions/checkout@v3
+        with:
+          repository: projeli/shared
+          path: shared
 
       - name: Log into Docker Hub
         uses: docker/login-action@v2
