@@ -13,6 +13,7 @@ builder.Services.AddWikiServiceDatabase(builder.Configuration, builder.Environme
 builder.Services.AddWikiServiceAuthentication(builder.Configuration, builder.Environment);
 builder.Services.UseWikiServiceRabbitMq(builder.Configuration);
 builder.Services.AddAutoMapper(Assembly.GetAssembly(typeof(WikiProfile)));
+builder.Services.AddWikiServiceOpenTelemetry(builder.Logging, builder.Configuration);
 
 var app = builder.Build();
 
@@ -28,5 +29,6 @@ if (app.Environment.IsDevelopment())
 app.UseWikiServiceCors();
 app.UseWikiServiceAuthentication();
 app.UseWikiServiceDatabase();
+app.UseWikiServiceOpenTelemetry();
 
 app.Run();
