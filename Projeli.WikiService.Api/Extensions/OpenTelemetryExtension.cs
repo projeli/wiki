@@ -18,7 +18,7 @@ public static class OpenTelemetryExtension
         });
         
         services.AddOpenTelemetry()
-            .ConfigureResource(builder => builder.AddService("project-service"))
+            .ConfigureResource(builder => builder.AddService("wiki-service"))
             .WithMetrics(builder =>
             {
                 builder
