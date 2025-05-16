@@ -19,7 +19,6 @@ var app = builder.Build();
 
 app.UseWikiServiceMiddleware();
 app.MapControllers();
-app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
 {

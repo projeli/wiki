@@ -13,6 +13,10 @@ public static class RabbitMqExtension
     {
         services.AddMassTransit(x =>
         {
+            x.AddConsumer<ProjectCreatedConsumer>();
+            x.AddConsumer<ProjectSyncConsumer>();
+            x.AddConsumer<ProjectUpdatedConsumer>();
+            
             x.UsingRabbitMq((context, config) =>
             {
                 config.Host(configuration["RabbitMq:Host"] ?? throw new MissingEnvironmentVariableException("RabbitMq:Host"), "/", h =>
@@ -20,12 +24,6 @@ public static class RabbitMqExtension
                     h.Username(configuration["RabbitMq:Username"] ?? throw new MissingEnvironmentVariableException("RabbitMq:Username"));
                     h.Password(configuration["RabbitMq:Password"] ?? throw new MissingEnvironmentVariableException("RabbitMq:Password"));
                 });
-
-                config.ConfigureEndpoints(context);
-
-                // config.ReceiveEndpoint<ProjectCreatedConsumer>("project-created-queue");
-                // config.ReceiveEndpoint<ProjectSyncConsumer>("project-sync-queue");
-                // config.ReceiveEndpoint<ProjectUpdatedConsumer>("project-updated-queue");
                 
                 config.ReceiveEndpoint("wiki-project-created-queue", e =>
                 {
@@ -44,15 +42,7 @@ public static class RabbitMqExtension
 
                 config.PublishFanOut<ProjectSyncRequestEvent>();
             });
-
-            x.AddConsumers(Assembly.GetAssembly(typeof(ProjectCreatedConsumer)));
         });
-    }
-
-    private static void ReceiveEndpoint<T>(this IRabbitMqBusFactoryConfigurator configurator, string queueName)
-        where T : class, IConsumer, new()
-    {
-        configurator.ReceiveEndpoint("wiki-" + queueName, e => { e.Consumer<T>(); });
     }
 
     private static void PublishFanOut<T>(this IRabbitMqBusFactoryConfigurator configurator)
