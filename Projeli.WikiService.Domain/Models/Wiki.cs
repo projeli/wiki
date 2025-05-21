@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Projeli.WikiService.Domain.Models;
@@ -18,9 +17,6 @@ public class Wiki
     
     [Required, StringLength(32)]
     public string ProjectSlug { get; set; }
-    
-    [StringLength(32)]
-    public string? Name { get; set; }
     
     public string? Content { get; set; }
     

@@ -98,7 +98,6 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         existingWiki.ProjectId = wiki.ProjectId;
         existingWiki.ProjectName = wiki.ProjectName;
         existingWiki.ProjectSlug = wiki.ProjectSlug;
-        existingWiki.Name = wiki.Name;
         existingWiki.Content = wiki.Content;
         existingWiki.Config = wiki.Config;
         existingWiki.UpdatedAt = wiki.UpdatedAt;
@@ -166,45 +165,6 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         newOwner.Permissions = newOwnerPermissions;
         
         await database.SaveChangesAsync();
-        return existingWiki;
-    }
-
-    public async Task<Wiki?> AddMembers(Ulid id, List<WikiMember> members)
-    {
-        if (members.Count == 0) return null;
-        
-        var existingWiki = await database.Wikis
-            .Include(w => w.Members)
-            .FirstOrDefaultAsync(w => w.Id == id);
-        if (existingWiki is null) return null;
-
-        foreach (var member in members)
-        {
-            var existingMember = existingWiki.Members.FirstOrDefault(m => m.UserId == member.UserId);
-            if (existingMember is null)
-            {
-                existingWiki.Members.Add(member);
-            }
-        }
-
-        await database.SaveChangesAsync();
-
-        return existingWiki;
-    }
-
-    public async Task<Wiki?> RemoveMembers(Ulid id, List<string> memberIds)
-    {
-        if (memberIds.Count == 0) return null;
-        
-        var existingWiki = await database.Wikis
-            .Include(w => w.Members)
-            .FirstOrDefaultAsync(w => w.Id == id);
-        if (existingWiki is null) return null;
-
-        existingWiki.Members.RemoveAll(m => memberIds.Contains(m.UserId));
-
-        await database.SaveChangesAsync();
-
         return existingWiki;
     }
 

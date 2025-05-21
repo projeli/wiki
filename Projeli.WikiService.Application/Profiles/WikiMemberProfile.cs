@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.Execution;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Models.Responses;
 using Projeli.WikiService.Domain.Models;

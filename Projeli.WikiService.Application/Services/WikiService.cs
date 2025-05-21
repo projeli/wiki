@@ -4,11 +4,12 @@ using Projeli.Shared.Domain.Results;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Services.Interfaces;
 using Projeli.WikiService.Domain.Models;
+using Projeli.WikiService.Domain.Models.Events;
 using Projeli.WikiService.Domain.Repositories;
 
 namespace Projeli.WikiService.Application.Services;
 
-public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiService
+public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepository eventRepository) : IWikiService
 {
     public async Task<IResult<WikiDto?>> GetById(Ulid id, string? userId, bool force = false)
     {
@@ -42,15 +43,33 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             : Result<WikiStatisticsDto?>.NotFound();
     }
 
-    public async Task<IResult<WikiDto?>> Create(WikiDto wikiDto)
+    public async Task<IResult<WikiDto?>> Create(Ulid projectId, string projectName, string projectSlug,
+        List<WikiMemberDto> members, string userId)
     {
-        wikiDto.Id = Ulid.NewUlid();
-        wikiDto.Members.ForEach(member =>
+        var performingMember = members.FirstOrDefault(member => member.UserId == userId);
+        if (performingMember is null || !performingMember.IsOwner)
         {
-            member.Id = Ulid.NewUlid();
-            member.WikiId = wikiDto.Id;
-            member.Permissions = member.IsOwner ? WikiMemberPermissions.All : WikiMemberPermissions.None;
-        });
+            throw new ForbiddenException("You do not have permission to create this wiki");
+        }
+
+        var wikiId = Ulid.NewUlid();
+        var wikiDto = new WikiDto
+        {
+            Id = wikiId,
+            ProjectId = projectId,
+            ProjectName = projectName,
+            ProjectSlug = projectSlug,
+            Members = members.Select(member => new WikiMemberDto
+            {
+                Id = Ulid.NewUlid(),
+                WikiId = wikiId,
+                UserId = member.UserId,
+                IsOwner = member.IsOwner,
+                Permissions = member.IsOwner
+                    ? WikiMemberPermissions.All
+                    : WikiMemberPermissions.None,
+            }).ToList(),
+        };
 
         var validationResult = ValidateWiki(wikiDto);
         if (validationResult.Failed) return validationResult;
@@ -58,27 +77,33 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
         var wiki = mapper.Map<Wiki>(wikiDto);
         var createdWiki = await repository.Create(wiki);
 
+        if (createdWiki is not null)
+        {
+            await eventRepository.StoreEvent(createdWiki.Id, new WikiCreatedEvent
+            {
+                UserId = userId,
+                Status = createdWiki.Status,
+            });
+        }
+
         return createdWiki is not null
             ? new Result<WikiDto?>(mapper.Map<WikiDto>(createdWiki))
             : Result<WikiDto?>.Fail("Failed to create wiki");
     }
 
-    public async Task<IResult<WikiDto?>> UpdateProjectInfo(Ulid id, WikiDto wikiDto)
+    public async Task<IResult<WikiDto?>> UpdateProjectDetails(Ulid id, WikiDto wikiDto)
     {
         var existingWiki = await repository.GetById(id, null, true);
         if (existingWiki is null) return Result<WikiDto?>.NotFound();
 
-        existingWiki.ProjectId = wikiDto.ProjectId;
+        if (existingWiki.ProjectName.Equals(wikiDto.ProjectName) &&
+            existingWiki.ProjectSlug.Equals(wikiDto.ProjectSlug))
+        {
+            return new Result<WikiDto>(mapper.Map<WikiDto>(existingWiki), "Project details are the same");
+        }
+        
         existingWiki.ProjectName = wikiDto.ProjectName;
         existingWiki.ProjectSlug = wikiDto.ProjectSlug;
-        existingWiki.Members = wikiDto.Members.Select(member => new WikiMember
-        {
-            Id = Ulid.NewUlid(),
-            WikiId = existingWiki.Id,
-            UserId = member.UserId,
-            IsOwner = member.IsOwner,
-            Permissions = member.IsOwner ? WikiMemberPermissions.All : WikiMemberPermissions.None
-        }).ToList();
 
         var updatedWiki = await repository.Update(existingWiki);
 
@@ -98,11 +123,10 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             throw new ForbiddenException("You do not have permission to edit this wiki");
         }
 
+        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (status)
         {
-            case WikiStatus.Uncreated:
-                return Result<WikiDto>.Fail("Cannot set status to uncreated");
-            case WikiStatus.Draft when existingWiki.Status != WikiStatus.Uncreated:
+            case WikiStatus.Draft:
                 return Result<WikiDto>.Fail("Cannot set status to draft");
             case WikiStatus.Published
                 when existingWiki.Status != WikiStatus.Draft && existingWiki.Status != WikiStatus.Archived:
@@ -112,6 +136,15 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
         }
 
         var updatedWiki = await repository.UpdateStatus(id, status);
+
+        if (updatedWiki is not null)
+        {
+            await eventRepository.StoreEvent(id, new WikiUpdatedStatusEvent
+            {
+                UserId = userId,
+                Status = updatedWiki.Status,
+            });
+        }
 
         return updatedWiki is not null
             ? new Result<WikiDto>(mapper.Map<WikiDto>(updatedWiki))
@@ -129,13 +162,28 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             throw new ForbiddenException("You do not have permission to edit this wiki");
         }
 
+        if (existingWiki.Content?.Equals(content) == true)
+        {
+            return new Result<WikiDto>(mapper.Map<WikiDto>(existingWiki), "Content is the same");
+        }
+
         var updatedWiki = await repository.UpdateContent(id, content);
+
+        if (updatedWiki is not null)
+        {
+            await eventRepository.StoreEvent(id, new WikiUpdatedContentEvent
+            {
+                UserId = userId,
+                Content = updatedWiki.Content,
+            });
+        }
+
         return updatedWiki is not null
             ? new Result<WikiDto>(mapper.Map<WikiDto>(updatedWiki))
             : Result<WikiDto>.Fail("Failed to update project");
     }
 
-    public async Task<IResult<WikiDto?>> UpdateSidebar(Ulid id, WikiConfigDto.WikiConfigSidebarDto sidebar,
+    public async Task<IResult<WikiDto?>> UpdateSidebar(Ulid id, WikiConfigDto.WikiConfigSidebarDto sidebarDto,
         string userId)
     {
         var existingWiki = await repository.GetById(id, userId);
@@ -147,9 +195,9 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             throw new ForbiddenException("You do not have permission to edit this wiki");
         }
 
-        for (var i = sidebar.Items.Count - 1; i >= 0; i--)
+        for (var i = sidebarDto.Items.Count - 1; i >= 0; i--)
         {
-            var item = sidebar.Items[i];
+            var item = sidebarDto.Items[i];
 
             if (item.Slug is not null)
             {
@@ -178,86 +226,93 @@ public class WikiService(IWikiRepository repository, IMapper mapper) : IWikiServ
             }
             else
             {
-                sidebar.Items.RemoveAt(i);
+                sidebarDto.Items.RemoveAt(i);
             }
         }
 
-        var updatedWiki = await repository.UpdateSidebar(id, mapper.Map<WikiConfig.WikiConfigSidebar>(sidebar));
+        var sidebar = mapper.Map<WikiConfig.WikiConfigSidebar>(sidebarDto);
+
+        if (existingWiki.Config?.Sidebar?.Equals(sidebar) == true)
+        {
+            return new Result<WikiDto>(mapper.Map<WikiDto>(existingWiki), "Sidebar is the same");
+        }
+
+        var updatedWiki = await repository.UpdateSidebar(id, sidebar);
+
+        if (updatedWiki is not null)
+        {
+            await eventRepository.StoreEvent(id, new WikiUpdatedSidebarEvent
+            {
+                UserId = userId,
+                Sidebar = updatedWiki.Config?.Sidebar ?? new WikiConfig.WikiConfigSidebar(),
+            });
+        }
 
         return updatedWiki is not null
             ? new Result<WikiDto>(mapper.Map<WikiDto>(updatedWiki))
             : Result<WikiDto>.Fail("Failed to update project");
     }
 
-    public async Task<IResult<WikiDto?>> UpdateMembers(Ulid id, List<WikiMemberDto> members, string userId,
+    public async Task<IResult<WikiDto?>> UpdateOwnership(Ulid wikiId, string fromUserId, string toUserId,
         bool force = false)
     {
-        var existingWiki = await repository.GetById(id, userId, force);
+        var existingWiki = await repository.GetById(wikiId, fromUserId, force);
         if (existingWiki is null) return Result<WikiDto?>.NotFound();
 
-        var member = existingWiki.Members.FirstOrDefault(member => member.UserId == userId);
-        if (!force && (member is null ||
-                       (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.EditWiki))))
+        var member = existingWiki.Members.FirstOrDefault(member => member.UserId == fromUserId);
+        if (member is null)
+        {
+            return Result<WikiDto?>.NotFound();
+        }
+
+        if (!force && !member.IsOwner)
         {
             throw new ForbiddenException("You do not have permission to edit this wiki");
         }
 
-        var existingWikiMemberIds = existingWiki.Members.Select(x => x.UserId);
-        var newUserIds = members
-            .Where(x => !existingWikiMemberIds.Contains(x.UserId))
-            .Select(x => x.UserId);
-        var removedUserIds = existingWiki.Members
-            .Where(x => !members.Select(m => m.UserId).Contains(x.UserId))
-            .Select(x => x.UserId).ToList();
+        var oldOwnerPermissions = Enum.GetValues(typeof(WikiMemberPermissions))
+            .Cast<WikiMemberPermissions>()
+            .Where(p => p != WikiMemberPermissions.All)
+            .Aggregate(WikiMemberPermissions.None, (current, permission) => current | permission);
 
-        var newMembers = members
-            .Where(x => newUserIds.Contains(x.UserId))
-            .Select(x => new WikiMember
-            {
-                Id = Ulid.NewUlid(),
-                WikiId = existingWiki.Id,
-                UserId = x.UserId,
-                IsOwner = x.IsOwner,
-                Permissions = x.IsOwner ? WikiMemberPermissions.All : WikiMemberPermissions.None
-            });
+        var updatedWiki = await repository.UpdateOwnership(wikiId, fromUserId, toUserId, oldOwnerPermissions,
+            WikiMemberPermissions.All);
 
-        await repository.AddMembers(id, newMembers.ToList());
-        await repository.RemoveMembers(id, removedUserIds);
-
-        var existingMembers = existingWiki.Members
-            .Where(x => !removedUserIds.Contains(x.UserId));
-
-        var oldOwner = existingMembers.FirstOrDefault(x => x.IsOwner) ??
-                       throw new ArgumentException("Wiki must have an owner");
-
-        var newOwner = members.FirstOrDefault(x => x.IsOwner) ?? mapper.Map<WikiMemberDto>(oldOwner);
-
-        if (oldOwner.UserId != newOwner.UserId)
+        if (updatedWiki is not null)
         {
-            var oldOwnerPermissions = Enum.GetValues(typeof(WikiMemberPermissions))
-                .Cast<WikiMemberPermissions>()
-                .Where(p => p != WikiMemberPermissions.All)
-                .Aggregate(WikiMemberPermissions.None, (current, permission) => current | permission);
-            
-            await repository.UpdateOwnership(id, oldOwner.UserId, newOwner.UserId, oldOwnerPermissions,
-                WikiMemberPermissions.All);
+            await eventRepository.StoreEvent(wikiId, new WikiUpdatedOwnershipEvent
+            {
+                UserId = fromUserId,
+                ToUserId = toUserId,
+            });
         }
-        
-        return new Result<WikiDto>(mapper.Map<WikiDto>(await repository.GetById(id, userId, force)));
+
+        return updatedWiki is not null
+            ? new Result<WikiDto>(mapper.Map<WikiDto>(updatedWiki))
+            : Result<WikiDto>.Fail("Failed to update project");
     }
 
-    public async Task<IResult<WikiDto?>> Delete(Ulid id, string userId)
+    public async Task<IResult<WikiDto?>> Delete(Ulid id, string? userId, bool force = false)
     {
-        var existingWiki = await repository.GetById(id, userId);
+        var existingWiki = await repository.GetById(id, userId, force);
         if (existingWiki is null) return Result<WikiDto>.NotFound();
 
-        var member = existingWiki.Members.FirstOrDefault(member => member.UserId == userId);
-        if (member is null || (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.DeleteWiki)))
+        if (!force)
         {
-            throw new ForbiddenException("You do not have permission to delete this wiki");
+            var member = existingWiki.Members.FirstOrDefault(member => member.UserId == userId);
+            if (member is null || (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.DeleteWiki)))
+            {
+                throw new ForbiddenException("You do not have permission to delete this wiki");
+            }
         }
 
         var success = await repository.Delete(id);
+
+        if (success)
+        {
+            await eventRepository.DeleteEvents(id);
+        }
+
         return success
             ? new Result<WikiDto>(mapper.Map<WikiDto>(existingWiki))
             : Result<WikiDto>.Fail("Failed to delete project");

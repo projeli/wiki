@@ -14,7 +14,5 @@ public interface IWikiRepository
     Task<Wiki?> UpdateContent(Ulid id, string content);
     Task<Wiki?> UpdateSidebar(Ulid id, WikiConfig.WikiConfigSidebar sidebar);
     Task<Wiki?> UpdateOwnership(Ulid id, string oldOwnerUserId, string newOwnerUserId, WikiMemberPermissions oldOwnerPermissions, WikiMemberPermissions newOwnerPermissions);
-    Task<Wiki?> AddMembers(Ulid id, List<WikiMember> members);
-    Task<Wiki?> RemoveMembers(Ulid id, List<string> memberIds);
     Task<bool> Delete(Ulid id);
 }

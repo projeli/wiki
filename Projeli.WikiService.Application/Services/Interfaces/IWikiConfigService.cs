@@ -1,6 +1,5 @@
 ﻿using Projeli.Shared.Domain.Results;
 using Projeli.WikiService.Application.Dtos;
-using Projeli.WikiService.Domain.Models;
 
 namespace Projeli.WikiService.Application.Services.Interfaces;
 

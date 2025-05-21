@@ -1,8 +1,5 @@
-﻿using System.Reflection;
-using MassTransit;
-using MassTransit.Transports.Fabric;
+﻿using MassTransit;
 using Projeli.Shared.Infrastructure.Exceptions;
-using Projeli.Shared.Infrastructure.Messaging.Events;
 using Projeli.WikiService.Infrastructure.Messaging.Consumers;
 
 namespace Projeli.WikiService.Api.Extensions;
@@ -13,9 +10,10 @@ public static class RabbitMqExtension
     {
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<ProjectCreatedConsumer>();
-            x.AddConsumer<ProjectSyncConsumer>();
-            x.AddConsumer<ProjectUpdatedConsumer>();
+            x.AddConsumer<ProjectUpdatedDetailsConsumer>();
+            x.AddConsumer<ProjectUpdatedOwnershipConsumer>();
+            x.AddConsumer<ProjectMemberAddedConsumer>();
+            x.AddConsumer<ProjectMemberRemovedConsumer>();
             x.AddConsumer<ProjectDeletedConsumer>();
             
             x.UsingRabbitMq((context, config) =>
@@ -26,27 +24,30 @@ public static class RabbitMqExtension
                     h.Password(configuration["RabbitMq:Password"] ?? throw new MissingEnvironmentVariableException("RabbitMq:Password"));
                 });
                 
-                config.ReceiveEndpoint("wiki-project-created-queue", e =>
+                config.ReceiveEndpoint("wiki-project-updated-details-queue", e =>
                 {
-                    e.ConfigureConsumer<ProjectCreatedConsumer>(context);
+                    e.ConfigureConsumer<ProjectUpdatedDetailsConsumer>(context);
                 });
                 
-                config.ReceiveEndpoint("wiki-project-sync-queue", e =>
+                config.ReceiveEndpoint("wiki-project-updated-ownership-queue", e =>
                 {
-                    e.ConfigureConsumer<ProjectSyncConsumer>(context);
+                    e.ConfigureConsumer<ProjectUpdatedOwnershipConsumer>(context);
                 });
                 
-                config.ReceiveEndpoint("wiki-project-updated-queue", e =>
+                config.ReceiveEndpoint("wiki-project-member-added-queue", e =>
                 {
-                    e.ConfigureConsumer<ProjectUpdatedConsumer>(context);
+                    e.ConfigureConsumer<ProjectMemberAddedConsumer>(context);
+                });
+                
+                config.ReceiveEndpoint("wiki-project-member-removed-queue", e =>
+                {
+                    e.ConfigureConsumer<ProjectMemberRemovedConsumer>(context);
                 });
                 
                 config.ReceiveEndpoint("wiki-project-deleted-queue", e =>
                 {
                     e.ConfigureConsumer<ProjectDeletedConsumer>(context);
                 });
-
-                config.PublishFanOut<ProjectSyncRequestEvent>();
             });
         });
     }

@@ -1,12 +1,10 @@
 ﻿using System.Reflection;
 using System.Security.Claims;
 using AutoMapper;
-using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Projeli.Shared.Domain.Results;
-using Projeli.Shared.Infrastructure.Messaging.Events;
 using Projeli.WikiService.Api.Controllers.V1;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Models.Requests;
@@ -20,16 +18,14 @@ namespace Projeli.WikiService.Tests.Controllers;
 public class WikiControllerTests
 {
     private readonly Mock<IWikiService> _wikiServiceMock;
-    private readonly Mock<IBus> _busMock;
     private readonly WikiController _controller;
 
     public WikiControllerTests()
     {
         _wikiServiceMock = new Mock<IWikiService>();
-        _busMock = new Mock<IBus>();
         var mapper =
             new MapperConfiguration(cfg => cfg.AddMaps(Assembly.GetAssembly(typeof(WikiProfile)))).CreateMapper();
-        _controller = new WikiController(_wikiServiceMock.Object, _busMock.Object, mapper);
+        _controller = new WikiController(_wikiServiceMock.Object, mapper);
     }
 
     [Fact]
@@ -37,7 +33,7 @@ public class WikiControllerTests
     {
         // Arrange
         var wikiId = Ulid.NewUlid();
-        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId, Name = "Test Wiki" });
+        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId });
         _wikiServiceMock.Setup(s => s.GetById(wikiId, null, false)).ReturnsAsync(wikiResult);
 
         // Act
@@ -55,7 +51,7 @@ public class WikiControllerTests
     {
         // Arrange
         var projectId = Ulid.NewUlid();
-        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = Ulid.NewUlid(), Name = "Test Wiki" });
+        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = Ulid.NewUlid() });
         _wikiServiceMock.Setup(s => s.GetByProjectId(projectId, null, false)).ReturnsAsync(wikiResult);
 
         // Act
@@ -69,49 +65,11 @@ public class WikiControllerTests
     }
 
     [Fact]
-    public async Task GetWikiByProjectId_ReturnsOkResult_WhenWikiExists_AfterRetry()
-    {
-        // Arrange
-        var projectId = Ulid.NewUlid();
-        var wikiDto = new WikiDto { Id = Ulid.NewUlid(), Name = "Test Wiki" };
-
-        // Setup mock IBUs
-        _busMock.Setup(b => b.Publish(It.IsAny<ProjectSyncRequestEvent>(), default))
-            .Returns(Task.CompletedTask);
-
-        // Setup wiki service to return null first, then success
-        var callCount = 0;
-        _wikiServiceMock.Setup(s => s.GetByProjectId(projectId, null, false))
-            .ReturnsAsync(() =>
-            {
-                callCount++;
-                return callCount == 1
-                    ? new Result<WikiDto?>(null)
-                    : new Result<WikiDto?>(wikiDto);
-            });
-
-        // Act
-        var result = await _controller.GetWikiByProjectId(projectId.ToString());
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnValue = Assert.IsType<Result<WikiResponse>>(okResult.Value);
-        Assert.True(returnValue.Success);
-        Assert.NotNull(returnValue.Data);
-
-        // Verify retry behavior
-        _wikiServiceMock.Verify(s => s.GetByProjectId(projectId, null, false), Times.Exactly(2));
-        _busMock.Verify(b => b.Publish(It.Is<ProjectSyncRequestEvent>(
-                e => e.ProjectId == projectId && e.ProjectSlug == null), default),
-            Times.Once());
-    }
-
-    [Fact]
     public async Task GetWikiByProjectId_ReturnsOkResult_WhenWikiExistsBySlug()
     {
         // Arrange
         var projectSlug = "test-project";
-        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = Ulid.NewUlid(), Name = "Test Wiki" });
+        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = Ulid.NewUlid() });
         _wikiServiceMock.Setup(s => s.GetByProjectSlug(projectSlug, null, false)).ReturnsAsync(wikiResult);
 
         // Act
@@ -148,7 +106,7 @@ public class WikiControllerTests
         // Arrange
         var wikiId = Ulid.NewUlid();
         var updateWikiStatusRequest = new UpdateWikiStatusRequest { Status = WikiStatus.Draft };
-        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId, Name = "Test Wiki" });
+        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId });
         _wikiServiceMock.Setup(s => s.UpdateStatus(wikiId, updateWikiStatusRequest.Status, "user123"))
             .ReturnsAsync(wikiResult);
         _controller.ControllerContext = new ControllerContext
@@ -177,7 +135,7 @@ public class WikiControllerTests
         // Arrange
         var wikiId = Ulid.NewUlid();
         var updateWikiContentRequest = new UpdateWikiContentRequest { Content = "Test Content" };
-        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId, Name = "Test Wiki" });
+        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId });
         _wikiServiceMock.Setup(s => s.UpdateContent(wikiId, updateWikiContentRequest.Content, "user123"))
             .ReturnsAsync(wikiResult);
         _controller.ControllerContext = new ControllerContext
@@ -207,7 +165,7 @@ public class WikiControllerTests
         var wikiId = Ulid.NewUlid();
         var updateWikiSidebarRequest = new UpdateWikiSidebarRequest
             { Sidebar = new WikiConfigDto.WikiConfigSidebarDto() };
-        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId, Name = "Test Wiki" });
+        var wikiResult = new Result<WikiDto?>(new WikiDto { Id = wikiId });
         _wikiServiceMock.Setup(s => s.UpdateSidebar(wikiId, updateWikiSidebarRequest.Sidebar, "user123"))
             .ReturnsAsync(wikiResult);
         _controller.ControllerContext = new ControllerContext
@@ -235,7 +193,7 @@ public class WikiControllerTests
     {
         // Arrange
         var wikiId = Ulid.NewUlid();
-        _wikiServiceMock.Setup(s => s.Delete(wikiId, "user123"))
+        _wikiServiceMock.Setup(s => s.Delete(wikiId, "user123", false))
             .ReturnsAsync(new Result<WikiDto>(new WikiDto { Id = wikiId }));
         _controller.ControllerContext = new ControllerContext
         {
@@ -252,7 +210,7 @@ public class WikiControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnValue = Assert.IsType<Result<WikiDto>>(okResult.Value);
+        var returnValue = Assert.IsType<Result<WikiResponse>>(okResult.Value);
         Assert.True(returnValue.Success);
         Assert.NotNull(returnValue.Data);
     }
@@ -262,7 +220,7 @@ public class WikiControllerTests
     {
         // Arrange
         var wikiId = Ulid.NewUlid();
-        _wikiServiceMock.Setup(s => s.Delete(wikiId, "user123")).ReturnsAsync(Result<WikiDto>.NotFound());
+        _wikiServiceMock.Setup(s => s.Delete(wikiId, "user123", false)).ReturnsAsync(Result<WikiDto>.NotFound());
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

@@ -1,8 +1,5 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Mvc;
 using Moq;
-using Moq.Protected;
 using Projeli.Shared.Application.Exceptions.Http;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Profiles;
@@ -16,17 +13,22 @@ public class WikiPageServiceTests
 {
     private readonly Mock<IWikiPageRepository> _repositoryMock;
     private readonly Mock<IWikiRepository> _wikiRepositoryMock;
-    private readonly IMapper _mapper;
     private readonly IWikiPageService _service;
 
     public WikiPageServiceTests()
     {
         _repositoryMock = new Mock<IWikiPageRepository>();
         _wikiRepositoryMock = new Mock<IWikiRepository>();
-        _mapper =
-            new MapperConfiguration(cfg => cfg.AddMaps(typeof(WikiProfile))).CreateMapper();
-        _service = new Application.Services.WikiPageService(_repositoryMock.Object, _wikiRepositoryMock.Object,
-            _mapper);
+        Mock<IWikiCategoryRepository> wikiCategoryRepository = new();
+        Mock<IEventRepository> eventRepository = new();
+        var mapper = new MapperConfiguration(cfg => cfg.AddMaps(typeof(WikiProfile))).CreateMapper();
+        _service = new Application.Services.WikiPageService(
+            _repositoryMock.Object,
+            _wikiRepositoryMock.Object,
+            wikiCategoryRepository.Object,
+            eventRepository.Object,
+            mapper
+        );
     }
 
     [Fact]
@@ -71,7 +73,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByWikiId_ReturnsSuccessResult_WhenWikiPagesExist()
     {
@@ -79,8 +81,14 @@ public class WikiPageServiceTests
         var wikiId = Ulid.NewUlid();
         var wikiPages = new List<Page>
         {
-            new Page { Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 1", Content = "Test Wiki Page Content 1" },
-            new Page { Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 2", Content = "Test Wiki Page Content 2" }
+            new Page
+            {
+                Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 1", Content = "Test Wiki Page Content 1"
+            },
+            new Page
+            {
+                Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 2", Content = "Test Wiki Page Content 2"
+            }
         };
         _repositoryMock.Setup(s => s.GetByWikiId(wikiId, null, false))
             .ReturnsAsync(wikiPages);
@@ -94,7 +102,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(2, result.Data!.Count);
     }
-    
+
     [Fact]
     public async Task GetByWikiId_ReturnsEmptySuccessResult_WhenWikiPagesDoNotExist()
     {
@@ -111,7 +119,7 @@ public class WikiPageServiceTests
         Assert.Empty(result.Data!);
         Assert.True(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByProjectId_ReturnsSuccessResult_WhenWikiPagesExist()
     {
@@ -120,8 +128,14 @@ public class WikiPageServiceTests
         var wikiId = Ulid.NewUlid();
         var wikiPages = new List<Page>
         {
-            new Page { Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 1", Content = "Test Wiki Page Content 1" },
-            new Page { Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 2", Content = "Test Wiki Page Content 2" }
+            new Page
+            {
+                Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 1", Content = "Test Wiki Page Content 1"
+            },
+            new Page
+            {
+                Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 2", Content = "Test Wiki Page Content 2"
+            }
         };
         _repositoryMock.Setup(s => s.GetByProjectId(projectId, null))
             .ReturnsAsync(wikiPages);
@@ -135,7 +149,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(2, result.Data!.Count);
     }
-    
+
     [Fact]
     public async Task GetByProjectId_ReturnsEmptySuccessResult_WhenWikiPagesDoNotExist()
     {
@@ -152,7 +166,7 @@ public class WikiPageServiceTests
         Assert.Empty(result.Data!);
         Assert.True(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByProjectSlug_ReturnsSuccessResult_WhenWikiPagesExist()
     {
@@ -161,8 +175,14 @@ public class WikiPageServiceTests
         var wikiId = Ulid.NewUlid();
         var wikiPages = new List<Page>
         {
-            new Page { Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 1", Content = "Test Wiki Page Content 1" },
-            new Page { Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 2", Content = "Test Wiki Page Content 2" }
+            new Page
+            {
+                Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 1", Content = "Test Wiki Page Content 1"
+            },
+            new Page
+            {
+                Id = Ulid.NewUlid(), WikiId = wikiId, Title = "Test Wiki Page 2", Content = "Test Wiki Page Content 2"
+            }
         };
         _repositoryMock.Setup(s => s.GetByProjectSlug(projectSlug, null))
             .ReturnsAsync(wikiPages);
@@ -176,7 +196,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(2, result.Data!.Count);
     }
-    
+
     [Fact]
     public async Task GetByProjectSlug_ReturnsEmptySuccessResult_WhenWikiPagesDoNotExist()
     {
@@ -193,7 +213,7 @@ public class WikiPageServiceTests
         Assert.Empty(result.Data!);
         Assert.True(result.Success);
     }
-    
+
     [Fact]
     public async Task GetBySlug_ReturnsSuccessResult_WhenWikiPageExists()
     {
@@ -219,7 +239,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal("test-wiki-page", result.Data!.Slug);
     }
-    
+
     [Fact]
     public async Task GetBySlug_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -236,7 +256,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByProjectIdAndId_ReturnsSuccessResult_WhenWikiPageExists()
     {
@@ -262,7 +282,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(wikiPage.Id, result.Data!.Id);
     }
-    
+
     [Fact]
     public async Task GetByProjectIdAndId_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -280,7 +300,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByProjectIdAndSlug_ReturnsSuccessResult_WhenWikiPageExists()
     {
@@ -307,7 +327,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(wikiPage.Id, result.Data!.Id);
     }
-    
+
     [Fact]
     public async Task GetByProjectIdAndSlug_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -325,7 +345,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByProjectSlugAndId_ReturnsSuccessResult_WhenWikiPageExists()
     {
@@ -351,7 +371,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(wikiPage.Id, result.Data!.Id);
     }
-    
+
     [Fact]
     public async Task GetByProjectSlugAndId_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -369,7 +389,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task GetByProjectSlugAndSlug_ReturnsSuccessResult_WhenWikiPageExists()
     {
@@ -396,7 +416,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(wikiPage.Id, result.Data!.Id);
     }
-    
+
     [Fact]
     public async Task GetByProjectSlugAndSlug_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -414,9 +434,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
-    
-    
+
 
     [Fact]
     public async Task Create_ReturnsSuccessResult_WhenWikiPageIsCreated()
@@ -430,7 +448,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.CreateWikiPages }]
         };
@@ -487,7 +504,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task Create_ThrowsForbiddenException_WhenUserDoesNotHavePermission()
     {
@@ -506,7 +523,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.None }]
         };
@@ -516,7 +532,7 @@ public class WikiPageServiceTests
         // Assert
         await Assert.ThrowsAsync<ForbiddenException>(() => _service.Create(wikiId, wikiPageDto, userId));
     }
-    
+
 
     [Fact]
     public async Task Update_ReturnsSuccessResult_WhenWikiPageIsUpdated()
@@ -530,7 +546,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWikiPages }]
         };
@@ -558,10 +573,10 @@ public class WikiPageServiceTests
                 wikiPage.Title = "Updated Wiki Page";
                 return wikiPage;
             });
-        
+
         // Act
         var result = await _service.Update(wikiId, wikiPageId, newPageDto, userId);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
@@ -569,7 +584,7 @@ public class WikiPageServiceTests
         Assert.Equal(wikiPageId, result.Data!.Id);
         Assert.Equal("Updated Wiki Page", result.Data!.Title);
     }
-    
+
     [Fact]
     public async Task Update_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -595,7 +610,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task Update_ThrowsForbiddenException_WhenUserDoesNotHavePermission()
     {
@@ -608,7 +623,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.None }]
         };
@@ -621,11 +635,11 @@ public class WikiPageServiceTests
         };
         _wikiRepositoryMock.Setup(s => s.GetById(wikiId, userId, false))
             .ReturnsAsync(wiki);
-        
+
         // Assert
         await Assert.ThrowsAsync<ForbiddenException>(() => _service.Update(wikiId, wikiPageId, newPageDto, userId));
     }
-    
+
     [Theory]
     [InlineData(null)]
     [InlineData("a")]
@@ -643,7 +657,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWikiPages }]
         };
@@ -665,17 +678,17 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
         _repositoryMock.Setup(s => s.GetById(wikiId, wikiPageId, userId, false))
             .ReturnsAsync(wikiPage);
-        
+
         // Act
         var result = await _service.Update(wikiId, wikiPageId, newPageDto, userId);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.Data);
         Assert.False(result.Success);
         Assert.Contains("title", result.Errors.Keys);
     }
-    
+
     [Theory]
     [InlineData(null)]
     [InlineData("a")]
@@ -693,7 +706,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWikiPages }]
         };
@@ -715,10 +727,10 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
         _repositoryMock.Setup(s => s.GetById(wikiId, wikiPageId, userId, false))
             .ReturnsAsync(wikiPage);
-        
+
         // Act
         var result = await _service.Update(wikiId, wikiPageId, newPageDto, userId);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.Data);
@@ -738,7 +750,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWikiPages }]
         };
@@ -777,7 +788,8 @@ public class WikiPageServiceTests
     [InlineData(PageStatus.Draft, PageStatus.Published)]
     [InlineData(PageStatus.Published, PageStatus.Archived)]
     [InlineData(PageStatus.Archived, PageStatus.Published)]
-    public async Task UpdateStatus_ReturnsSuccessResult_WhenWikiPageStatusIsUpdated(PageStatus currentStatus, PageStatus newStatus)
+    public async Task UpdateStatus_ReturnsSuccessResult_WhenWikiPageStatusIsUpdated(PageStatus currentStatus,
+        PageStatus newStatus)
     {
         // Arrange
         var wikiPageId = Ulid.NewUlid();
@@ -788,7 +800,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.PublishWikiPages }]
         };
@@ -821,7 +832,7 @@ public class WikiPageServiceTests
         Assert.Equal(wikiPageId, result.Data!.Id);
         Assert.Equal(newStatus, result.Data!.Status);
     }
-    
+
     [Theory]
     [InlineData(PageStatus.Draft, PageStatus.Archived)]
     [InlineData(PageStatus.Draft, PageStatus.Draft)]
@@ -829,7 +840,8 @@ public class WikiPageServiceTests
     [InlineData(PageStatus.Published, PageStatus.Published)]
     [InlineData(PageStatus.Archived, PageStatus.Draft)]
     [InlineData(PageStatus.Archived, PageStatus.Archived)]
-    public async Task UpdateStatus_ReturnsFailedResult_WhenWikiPageStatusIsNotAllowed(PageStatus currentStatus, PageStatus newStatus)
+    public async Task UpdateStatus_ReturnsFailedResult_WhenWikiPageStatusIsNotAllowed(PageStatus currentStatus,
+        PageStatus newStatus)
     {
         // Arrange
         var wikiPageId = Ulid.NewUlid();
@@ -840,7 +852,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.PublishWikiPages }]
         };
@@ -859,13 +870,13 @@ public class WikiPageServiceTests
 
         // Assert
         var result = await _service.UpdateStatus(wikiId, wikiPageId, newStatus, userId);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task UpdateStatus_ThrowsForbiddenException_WhenUserDoesNotHavePermission()
     {
@@ -878,7 +889,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.None }]
         };
@@ -886,10 +896,11 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
 
         // Assert
-        await Assert.ThrowsAsync<ForbiddenException>(() => _service.UpdateStatus(wikiId, wikiPageId, PageStatus.Published, userId));
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.UpdateStatus(wikiId, wikiPageId, PageStatus.Published, userId));
     }
-        
-        
+
+
     [Fact]
     public async Task UpdateContent_ReturnsSuccessResult_WhenWikiPageIsUpdated()
     {
@@ -902,7 +913,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWikiPages }]
         };
@@ -934,7 +944,7 @@ public class WikiPageServiceTests
         Assert.Equal(wikiPageId, result.Data!.Id);
         Assert.Equal("Updated Wiki Page Content", result.Data!.Content);
     }
-    
+
     [Fact]
     public async Task UpdateContent_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -953,7 +963,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task UpdateContent_ReturnsFailedResult_WhenUserDoesNotHavePermission()
     {
@@ -966,7 +976,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.None }]
         };
@@ -974,9 +983,10 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
 
         // Assert
-        await Assert.ThrowsAsync<ForbiddenException>(() => _service.UpdateContent(wikiId, wikiPageId, "Updated Wiki Page Content", userId));
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.UpdateContent(wikiId, wikiPageId, "Updated Wiki Page Content", userId));
     }
-    
+
     [Fact]
     public async Task UpdateContent_ReturnsFailedResult_WhenWikiDoesNotExist()
     {
@@ -995,7 +1005,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task UpdateCategories_ReturnsSuccessResult_WhenWikiPageCategoriesAreUpdated()
     {
@@ -1008,7 +1018,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWikiPages }]
         };
@@ -1040,7 +1049,7 @@ public class WikiPageServiceTests
         Assert.Equal(wikiPageId, result.Data!.Id);
         Assert.Single(result.Data!.Categories);
     }
-    
+
     [Fact]
     public async Task UpdateCategories_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -1059,7 +1068,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task UpdateCategories_ReturnsFailedResult_WhenUserDoesNotHavePermission()
     {
@@ -1072,7 +1081,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.None }]
         };
@@ -1080,9 +1088,10 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
 
         // Assert
-        await Assert.ThrowsAsync<ForbiddenException>(() => _service.UpdateCategories(wikiId, wikiPageId, [Ulid.NewUlid()], userId));
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.UpdateCategories(wikiId, wikiPageId, [Ulid.NewUlid()], userId));
     }
-    
+
     [Fact]
     public async Task UpdateCategories_ReturnsFailedResult_WhenWikiDoesNotExist()
     {
@@ -1101,7 +1110,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task Delete_ReturnsSuccessResult_WhenWikiPageIsDeleted()
     {
@@ -1114,7 +1123,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.DeleteWikiPages }]
         };
@@ -1141,7 +1149,7 @@ public class WikiPageServiceTests
         Assert.True(result.Success);
         Assert.Equal(wikiPageId, result.Data!.Id);
     }
-    
+
     [Fact]
     public async Task Delete_ReturnsFailedResult_WhenWikiPageDoesNotExist()
     {
@@ -1160,7 +1168,7 @@ public class WikiPageServiceTests
         Assert.Null(result.Data);
         Assert.False(result.Success);
     }
-    
+
     [Fact]
     public async Task Delete_ReturnsFailedResult_WhenUserDoesNotHavePermission()
     {
@@ -1173,7 +1181,6 @@ public class WikiPageServiceTests
             Id = wikiId,
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
-            Name = "Test Wiki",
             Status = WikiStatus.Published,
             Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.None }]
         };
@@ -1183,7 +1190,7 @@ public class WikiPageServiceTests
         // Assert
         await Assert.ThrowsAsync<ForbiddenException>(() => _service.Delete(wikiId, wikiPageId, userId));
     }
-    
+
     [Fact]
     public async Task Delete_ReturnsFailedResult_WhenWikiDoesNotExist()
     {

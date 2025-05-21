@@ -1,5 +1,4 @@
-﻿using Projeli.Shared.Domain.Results;
-using Projeli.WikiService.Domain.Models;
+﻿using Projeli.WikiService.Domain.Models;
 
 namespace Projeli.WikiService.Domain.Repositories;
 

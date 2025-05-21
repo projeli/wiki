@@ -5,6 +5,7 @@ using Projeli.Shared.Domain.Results;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Services.Interfaces;
 using Projeli.WikiService.Domain.Models;
+using Projeli.WikiService.Domain.Models.Events.Categories;
 using Projeli.WikiService.Domain.Repositories;
 
 namespace Projeli.WikiService.Application.Services;
@@ -12,6 +13,7 @@ namespace Projeli.WikiService.Application.Services;
 public partial class WikiCategoryService(
     IWikiCategoryRepository wikiCategoryRepository,
     IWikiRepository wikiRepository,
+    IEventRepository eventRepository,
     IMapper mapper) : IWikiCategoryService
 {
     public async Task<IResult<List<CategoryDto>>> GetByWikiId(Ulid wikiId, string? userId)
@@ -58,12 +60,25 @@ public partial class WikiCategoryService(
 
         var newCategory = await wikiCategoryRepository.Create(wikiId, category);
 
+        if (newCategory is not null)
+        {
+            await eventRepository.StoreEvent(wikiId, new WikiCategoryCreatedEvent
+            {
+                UserId = userId,
+                CategoryId = newCategory.Id,
+                Name = newCategory.Name,
+                Slug = newCategory.Slug,
+                Description = newCategory.Description,
+            });
+        }
+
         return newCategory is not null
             ? new Result<CategoryDto>(mapper.Map<CategoryDto>(newCategory))
             : Result<CategoryDto>.Fail("Failed to create category.");
     }
 
-    public async Task<IResult<CategoryDto?>> Update(Ulid wikiId, Ulid categoryId, CategoryDto categoryDto, string userId)
+    public async Task<IResult<CategoryDto?>> Update(Ulid wikiId, Ulid categoryId, CategoryDto categoryDto,
+        string userId)
     {
         var existingWiki = await wikiRepository.GetById(wikiId, userId);
         if (existingWiki is null) return Result<CategoryDto>.NotFound();
@@ -77,16 +92,36 @@ public partial class WikiCategoryService(
 
         var existingCategory = await wikiCategoryRepository.GetById(wikiId, categoryId, userId);
         if (existingCategory is null) return Result<CategoryDto>.NotFound();
+        
+        if (existingCategory.Name == categoryDto.Name &&
+            existingCategory.Slug == categoryDto.Slug &&
+            existingCategory.Description == categoryDto.Description)
+        {
+            return new Result<CategoryDto>(mapper.Map<CategoryDto>(existingCategory));
+        }
+        
+        existingCategory.UpdatedAt = DateTime.UtcNow;
+        existingCategory.Name = categoryDto.Name;
+        existingCategory.Slug = categoryDto.Slug;
+        existingCategory.Description = categoryDto.Description;
 
-        var category = mapper.Map<Category>(categoryDto);
-        category.Id = existingCategory.Id;
-        category.UpdatedAt = DateTime.UtcNow;
-
-        var validationResult = await ValidateCategory(category);
+        var validationResult = await ValidateCategory(existingCategory);
         if (!validationResult.Success) return validationResult;
 
-        var updatedCategory = await wikiCategoryRepository.Update(wikiId, category);
+        var updatedCategory = await wikiCategoryRepository.Update(wikiId, existingCategory);
 
+        if (updatedCategory is not null)
+        {
+            await eventRepository.StoreEvent(wikiId, new WikiCategoryUpdatedEvent
+            {
+                UserId = userId,
+                CategoryId = updatedCategory.Id,
+                Name = updatedCategory.Name,
+                Slug = updatedCategory.Slug,
+                Description = updatedCategory.Description,
+            });
+        }
+        
         return updatedCategory is not null
             ? new Result<CategoryDto>(mapper.Map<CategoryDto>(updatedCategory))
             : Result<CategoryDto>.Fail("Failed to update category.");
@@ -108,6 +143,15 @@ public partial class WikiCategoryService(
         if (existingCategory is null) return Result<CategoryDto>.NotFound();
 
         var success = await wikiCategoryRepository.Delete(wikiId, categoryId);
+
+        if (success)
+        {
+            await eventRepository.StoreEvent(wikiId, new WikiCategoryDeletedEvent
+            {
+                UserId = userId,
+                CategoryId = existingCategory.Id,
+            });
+        }
         
         return success
             ? new Result<CategoryDto>(mapper.Map<CategoryDto>(existingCategory))

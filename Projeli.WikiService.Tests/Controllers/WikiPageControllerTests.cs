@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using System.Security.Claims;
 using AutoMapper;
-using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
