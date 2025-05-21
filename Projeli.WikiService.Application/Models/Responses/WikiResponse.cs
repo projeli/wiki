@@ -27,7 +27,7 @@ public class WikiResponse
     
     public DateTime? PublishedAt { get; set; }
     
-    public List<SimpleWikiMemberResponse> Members { get; set; } = [];
+    public List<WikiMemberResponse> Members { get; set; } = [];
     public List<SimpleCategoryResponse> Categories { get; set; } = [];
     public List<SimplePageResponse> Pages { get; set; } = [];
 }

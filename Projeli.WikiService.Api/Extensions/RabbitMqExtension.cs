@@ -16,6 +16,7 @@ public static class RabbitMqExtension
             x.AddConsumer<ProjectCreatedConsumer>();
             x.AddConsumer<ProjectSyncConsumer>();
             x.AddConsumer<ProjectUpdatedConsumer>();
+            x.AddConsumer<ProjectDeletedConsumer>();
             
             x.UsingRabbitMq((context, config) =>
             {
@@ -38,6 +39,11 @@ public static class RabbitMqExtension
                 config.ReceiveEndpoint("wiki-project-updated-queue", e =>
                 {
                     e.ConfigureConsumer<ProjectUpdatedConsumer>(context);
+                });
+                
+                config.ReceiveEndpoint("wiki-project-deleted-queue", e =>
+                {
+                    e.ConfigureConsumer<ProjectDeletedConsumer>(context);
                 });
 
                 config.PublishFanOut<ProjectSyncRequestEvent>();

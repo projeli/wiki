@@ -10,5 +10,6 @@ public static class ServiceExtension
         services.AddScoped<IWikiConfigService, Application.Services.WikiConfigService>();
         services.AddScoped<IWikiCategoryService, Application.Services.WikiCategoryService>();
         services.AddScoped<IWikiPageService, Application.Services.WikiPageService>();
+        services.AddScoped<IWikiMemberService, Application.Services.WikiMemberService>();
     }
 }

@@ -21,19 +21,20 @@ public class ProjectUpdatedConsumer(IWikiService wikiService) : IConsumer<Projec
                 IsOwner = x.IsOwner
             }).ToList()
         };
-        
-        var existingWiki = await wikiService.GetByProjectId(wikiDto.ProjectId, null, true);
-        IResult<WikiDto?> wikiResult;
-        
-        if (existingWiki.Data is null)
+
+        var existingWiki = (await wikiService.GetByProjectId(wikiDto.ProjectId, null, true)).Data;
+
+        if (existingWiki is null)
         {
-            wikiResult = await wikiService.Create(wikiDto);
+            await wikiService.Create(wikiDto);
         } else {
-            existingWiki.Data.ProjectName = wikiDto.ProjectName;
-            existingWiki.Data.ProjectSlug = wikiDto.ProjectSlug;
-            existingWiki.Data.Members = wikiDto.Members;
+            existingWiki.ProjectName = wikiDto.ProjectName;
+            existingWiki.ProjectSlug = wikiDto.ProjectSlug;
+            existingWiki.Members = wikiDto.Members;
             
-            wikiResult = await wikiService.UpdateProjectInfo(existingWiki.Data.Id, existingWiki.Data);
+            await wikiService.UpdateProjectInfo(existingWiki.Id, existingWiki);
+
+            await wikiService.UpdateMembers(existingWiki.Id, existingWiki.Members, null, true);
         }
     }
 }

@@ -146,6 +146,68 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         return existingWiki;
     }
 
+    public async Task<Wiki?> UpdateOwnership(Ulid id, string oldOwnerUserId, string newOwnerUserId, WikiMemberPermissions oldOwnerPermissions,
+        WikiMemberPermissions newOwnerPermissions)
+    {
+        var existingWiki = await database.Wikis
+            .Include(w => w.Members)
+            .FirstOrDefaultAsync(w => w.Id == id);
+        if (existingWiki is null) return null;
+        
+        var oldOwner = existingWiki.Members.FirstOrDefault(m => m.UserId == oldOwnerUserId);
+        if (oldOwner is null) return null;
+        
+        var newOwner = existingWiki.Members.FirstOrDefault(m => m.UserId == newOwnerUserId);
+        if (newOwner is null) return null;
+        
+        oldOwner.IsOwner = false;
+        oldOwner.Permissions = oldOwnerPermissions;
+        newOwner.IsOwner = true;
+        newOwner.Permissions = newOwnerPermissions;
+        
+        await database.SaveChangesAsync();
+        return existingWiki;
+    }
+
+    public async Task<Wiki?> AddMembers(Ulid id, List<WikiMember> members)
+    {
+        if (members.Count == 0) return null;
+        
+        var existingWiki = await database.Wikis
+            .Include(w => w.Members)
+            .FirstOrDefaultAsync(w => w.Id == id);
+        if (existingWiki is null) return null;
+
+        foreach (var member in members)
+        {
+            var existingMember = existingWiki.Members.FirstOrDefault(m => m.UserId == member.UserId);
+            if (existingMember is null)
+            {
+                existingWiki.Members.Add(member);
+            }
+        }
+
+        await database.SaveChangesAsync();
+
+        return existingWiki;
+    }
+
+    public async Task<Wiki?> RemoveMembers(Ulid id, List<string> memberIds)
+    {
+        if (memberIds.Count == 0) return null;
+        
+        var existingWiki = await database.Wikis
+            .Include(w => w.Members)
+            .FirstOrDefaultAsync(w => w.Id == id);
+        if (existingWiki is null) return null;
+
+        existingWiki.Members.RemoveAll(m => memberIds.Contains(m.UserId));
+
+        await database.SaveChangesAsync();
+
+        return existingWiki;
+    }
+
     public async Task<bool> Delete(Ulid id)
     {
         var existingWiki = await database.Wikis.FirstOrDefaultAsync(w => w.Id == id);

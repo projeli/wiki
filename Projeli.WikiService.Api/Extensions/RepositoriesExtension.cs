@@ -11,5 +11,6 @@ public static class RepositoriesExtension
         services.AddScoped<IWikiConfigRepository, WikiConfigRepository>();
         services.AddScoped<IWikiCategoryRepository, WikiCategoryRepository>();
         services.AddScoped<IWikiPageRepository, WikiPageRepository>();
+        services.AddScoped<IWikiMemberRepository, WikiMemberRepository>();
     }
 }

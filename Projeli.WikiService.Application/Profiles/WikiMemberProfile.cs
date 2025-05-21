@@ -12,7 +12,8 @@ public class WikiMemberProfile : Profile
     {
         CreateMap<WikiMember, WikiMemberDto>();
         CreateMap<WikiMemberDto, WikiMember>();
-        
+
+        CreateMap<WikiMemberDto, WikiMemberResponse>();
         CreateMap<WikiMemberDto, SimpleWikiMemberResponse>();
     }
 }
