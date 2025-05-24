@@ -7,6 +7,14 @@ namespace Projeli.WikiService.Infrastructure.Repositories;
 
 public class WikiMemberRepository(WikiServiceDbContext database) : IWikiMemberRepository
 {
+    public async Task<WikiMember?> Get(Ulid wikiId, string userId)
+    {
+        var wikiMember = await database.Members
+            .FirstOrDefaultAsync(member => member.WikiId == wikiId && member.UserId == userId);
+
+        return wikiMember;
+    }
+
     public async Task<WikiMember?> Add(Ulid wikiId, WikiMember member)
     {
         var existingMember = await database.Members

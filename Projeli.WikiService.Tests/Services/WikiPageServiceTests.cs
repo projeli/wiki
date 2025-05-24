@@ -20,13 +20,15 @@ public class WikiPageServiceTests
         _repositoryMock = new Mock<IWikiPageRepository>();
         _wikiRepositoryMock = new Mock<IWikiRepository>();
         Mock<IWikiCategoryRepository> wikiCategoryRepository = new();
-        Mock<IEventRepository> eventRepository = new();
+        Mock<IBusRepository> busRepository = new();
+        Mock<IWikiEventRepository> eventRepository = new();
         var mapper = new MapperConfiguration(cfg => cfg.AddMaps(typeof(WikiProfile))).CreateMapper();
         _service = new Application.Services.WikiPageService(
             _repositoryMock.Object,
             _wikiRepositoryMock.Object,
             wikiCategoryRepository.Object,
             eventRepository.Object,
+            busRepository.Object,
             mapper
         );
     }

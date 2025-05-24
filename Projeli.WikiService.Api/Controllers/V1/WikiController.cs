@@ -16,6 +16,17 @@ namespace Projeli.WikiService.Api.Controllers.V1;
 [Route("v1/wikis")]
 public class WikiController(IWikiService wikiService, IMapper mapper) : BaseController
 {
+    [HttpGet]
+    public async Task<IActionResult> GetWikis(
+            [FromQuery] List<Ulid> ids
+        )
+    {
+        var result = await wikiService.GetByIds(ids, User.TryGetId());
+        return HandleResult(result.Success
+            ? new Result<List<WikiResponse>>(mapper.Map<List<WikiResponse>>(result.Data))
+            : Result<List<WikiResponse>>.NotFound());
+    }
+    
     [HttpGet("{id}")]
     public async Task<IActionResult> GetWikiById([FromRoute] Ulid id)
     {
@@ -61,6 +72,7 @@ public class WikiController(IWikiService wikiService, IMapper mapper) : BaseCont
             request.ProjectId,
             request.ProjectName,
             request.ProjectSlug,
+            request.ProjectImageUrl,
             request.Members.Select(member => new WikiMemberDto
             {
                 UserId = member.UserId,

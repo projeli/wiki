@@ -13,7 +13,7 @@ namespace Projeli.WikiService.Application.Services;
 public partial class WikiCategoryService(
     IWikiCategoryRepository wikiCategoryRepository,
     IWikiRepository wikiRepository,
-    IEventRepository eventRepository,
+    IWikiEventRepository wikiEventRepository,
     IMapper mapper) : IWikiCategoryService
 {
     public async Task<IResult<List<CategoryDto>>> GetByWikiId(Ulid wikiId, string? userId)
@@ -62,7 +62,7 @@ public partial class WikiCategoryService(
 
         if (newCategory is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiCategoryCreatedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiCategoryCreatedEvent
             {
                 UserId = userId,
                 CategoryId = newCategory.Id,
@@ -112,7 +112,7 @@ public partial class WikiCategoryService(
 
         if (updatedCategory is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiCategoryUpdatedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiCategoryUpdatedEvent
             {
                 UserId = userId,
                 CategoryId = updatedCategory.Id,
@@ -146,7 +146,7 @@ public partial class WikiCategoryService(
 
         if (success)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiCategoryDeletedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiCategoryDeletedEvent
             {
                 UserId = userId,
                 CategoryId = existingCategory.Id,

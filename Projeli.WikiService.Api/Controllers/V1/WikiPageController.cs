@@ -133,7 +133,7 @@ public class WikiPageController(IWikiPageService wikiPageService, IMapper mapper
     {
         var result = await wikiPageService.UpdateCategories(wikiId, pageId, request.CategoryIds, User.GetId());
         return HandleResult(result.Success
-            ? new Result<PageResponse>(mapper.Map<PageResponse>(result.Data))
+            ? new Result<PageResponse>(mapper.Map<PageResponse>(result.Data), result.Message)
             : result);
     }
 

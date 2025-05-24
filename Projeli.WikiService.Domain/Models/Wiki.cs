@@ -18,6 +18,9 @@ public class Wiki
     [Required, StringLength(32)]
     public string ProjectSlug { get; set; }
     
+    [StringLength(128)]
+    public string? ProjectImageUrl { get; set; }
+    
     public string? Content { get; set; }
     
     public WikiConfig Config { get; set; }

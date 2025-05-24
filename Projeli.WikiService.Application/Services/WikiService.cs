@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
 using Projeli.Shared.Application.Exceptions.Http;
+using Projeli.Shared.Application.Messages.Notifications;
+using Projeli.Shared.Domain.Models.Notifications;
+using Projeli.Shared.Domain.Models.Notifications.Types.Wikis;
 using Projeli.Shared.Domain.Results;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Services.Interfaces;
@@ -9,8 +12,14 @@ using Projeli.WikiService.Domain.Repositories;
 
 namespace Projeli.WikiService.Application.Services;
 
-public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepository eventRepository) : IWikiService
+public class WikiService(IWikiRepository repository, IBusRepository busRepository, IMapper mapper, IWikiEventRepository wikiEventRepository) : IWikiService
 {
+    public async Task<IResult<List<WikiDto>>> GetByIds(List<Ulid> ids, string? userId)
+    {
+        var wikis = await repository.GetByIds(ids, userId);
+        return new Result<List<WikiDto>>(mapper.Map<List<WikiDto>>(wikis));
+    }
+
     public async Task<IResult<WikiDto?>> GetById(Ulid id, string? userId, bool force = false)
     {
         var wiki = await repository.GetById(id, userId, force);
@@ -43,8 +52,8 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
             : Result<WikiStatisticsDto?>.NotFound();
     }
 
-    public async Task<IResult<WikiDto?>> Create(Ulid projectId, string projectName, string projectSlug,
-        List<WikiMemberDto> members, string userId)
+    public async Task<IResult<WikiDto?>> Create(Ulid projectId, string projectName, string projectSlug, 
+        string? projectImageUrl, List<WikiMemberDto> members, string userId)
     {
         var performingMember = members.FirstOrDefault(member => member.UserId == userId);
         if (performingMember is null || !performingMember.IsOwner)
@@ -59,6 +68,7 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
             ProjectId = projectId,
             ProjectName = projectName,
             ProjectSlug = projectSlug,
+            ProjectImageUrl = projectImageUrl,
             Members = members.Select(member => new WikiMemberDto
             {
                 Id = Ulid.NewUlid(),
@@ -79,7 +89,7 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
 
         if (createdWiki is not null)
         {
-            await eventRepository.StoreEvent(createdWiki.Id, new WikiCreatedEvent
+            await wikiEventRepository.StoreEvent(createdWiki.Id, new WikiCreatedEvent
             {
                 UserId = userId,
                 Status = createdWiki.Status,
@@ -139,11 +149,45 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
 
         if (updatedWiki is not null)
         {
-            await eventRepository.StoreEvent(id, new WikiUpdatedStatusEvent
+            await wikiEventRepository.StoreEvent(id, new WikiUpdatedStatusEvent
             {
                 UserId = userId,
                 Status = updatedWiki.Status,
             });
+
+            if (updatedWiki.Status == WikiStatus.Published)
+            {
+                await busRepository.Publish(new AddNotificationsMessage
+                {
+                    Notifications = existingWiki.Members.Select(x => new NotificationMessage
+                    {
+                        UserId = x.UserId,
+                        Type = NotificationType.WikiPublished,
+                        Body = new WikiPublished
+                        {
+                            PerformerId = userId,
+                            WikiId = updatedWiki.Id
+                        },
+                        IsRead = x.UserId == userId,
+                    }).ToList(),
+                });
+            } else if (updatedWiki.Status == WikiStatus.Archived)
+            {
+                await busRepository.Publish(new AddNotificationsMessage
+                {
+                    Notifications = existingWiki.Members.Select(x => new NotificationMessage
+                    {
+                        UserId = x.UserId,
+                        Type = NotificationType.WikiArchived,
+                        Body = new WikiArchived
+                        {
+                            PerformerId = userId,
+                            WikiId = updatedWiki.Id
+                        },
+                        IsRead = x.UserId == userId,
+                    }).ToList(),
+                });
+            }
         }
 
         return updatedWiki is not null
@@ -171,7 +215,7 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
 
         if (updatedWiki is not null)
         {
-            await eventRepository.StoreEvent(id, new WikiUpdatedContentEvent
+            await wikiEventRepository.StoreEvent(id, new WikiUpdatedContentEvent
             {
                 UserId = userId,
                 Content = updatedWiki.Content,
@@ -241,7 +285,7 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
 
         if (updatedWiki is not null)
         {
-            await eventRepository.StoreEvent(id, new WikiUpdatedSidebarEvent
+            await wikiEventRepository.StoreEvent(id, new WikiUpdatedSidebarEvent
             {
                 UserId = userId,
                 Sidebar = updatedWiki.Config?.Sidebar ?? new WikiConfig.WikiConfigSidebar(),
@@ -280,7 +324,7 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
 
         if (updatedWiki is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiUpdatedOwnershipEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiUpdatedOwnershipEvent
             {
                 UserId = fromUserId,
                 ToUserId = toUserId,
@@ -310,7 +354,29 @@ public class WikiService(IWikiRepository repository, IMapper mapper, IEventRepos
 
         if (success)
         {
-            await eventRepository.DeleteEvents(id);
+            await wikiEventRepository.DeleteEvents(id);
+
+            // If userId is null, the system is deleting the wiki meaning that the project has been deleted
+            // That actions will create a notification that the project has been deleted so we don't need to create
+            // a notification for the wiki deletion.
+            if (userId is not null)
+            {
+                await busRepository.Publish(new AddNotificationsMessage
+                {
+                    Notifications = existingWiki.Members.Select(x => new NotificationMessage
+                    {
+                        UserId = x.UserId,
+                        Type = NotificationType.WikiDeleted,
+                        Body = new WikiDeleted
+                        {
+                            PerformerId = userId,
+                            WikiId = existingWiki.Id,
+                            WikiName = existingWiki.ProjectName,
+                        },
+                        IsRead = x.UserId == userId,
+                    }).ToList(),
+                });
+            }
         }
 
         return success

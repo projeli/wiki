@@ -12,7 +12,7 @@ namespace Projeli.WikiService.Application.Services;
 public class WikiMemberService(
     IWikiRepository wikiRepository,
     IWikiMemberRepository wikiMemberRepository,
-    IEventRepository eventRepository,
+    IWikiEventRepository wikiEventRepository,
     IMapper mapper)
     : IWikiMemberService
 {
@@ -32,7 +32,7 @@ public class WikiMemberService(
 
         if (newMember is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiMemberAddedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiMemberAddedEvent
             {
                 UserId = performingUserId,
                 MemberId = userId,
@@ -88,7 +88,7 @@ public class WikiMemberService(
 
         if (updatedMember is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiMemberUpdatedPermissionsEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiMemberUpdatedPermissionsEvent
             {
                 UserId = performingUserId,
                 MemberId = updatedMember.UserId,
@@ -117,7 +117,7 @@ public class WikiMemberService(
 
         if (success)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiMemberRemovedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiMemberRemovedEvent
             {
                 UserId = performingUserId,
                 MemberId = userId,

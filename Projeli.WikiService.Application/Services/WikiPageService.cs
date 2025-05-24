@@ -1,6 +1,9 @@
 ﻿using System.Text.RegularExpressions;
 using AutoMapper;
 using Projeli.Shared.Application.Exceptions.Http;
+using Projeli.Shared.Application.Messages.Notifications;
+using Projeli.Shared.Domain.Models.Notifications;
+using Projeli.Shared.Domain.Models.Notifications.Types.Wikis;
 using Projeli.Shared.Domain.Results;
 using Projeli.WikiService.Application.Dtos;
 using Projeli.WikiService.Application.Services.Interfaces;
@@ -14,7 +17,8 @@ public partial class WikiPageService(
     IWikiPageRepository wikiPageRepository,
     IWikiRepository wikiRepository,
     IWikiCategoryRepository wikiCategoryRepository,
-    IEventRepository eventRepository,
+    IWikiEventRepository wikiEventRepository,
+    IBusRepository busRepository,
     IMapper mapper) : IWikiPageService
 {
     public async Task<IResult<List<PageDto>>> GetByWikiId(Ulid wikiId, string? userId = null, bool force = false)
@@ -107,7 +111,7 @@ public partial class WikiPageService(
 
         if (newPage is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiPageCreatedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiPageCreatedEvent
             {
                 UserId = userId,
                 WikiPageId = newPage.Id,
@@ -140,7 +144,7 @@ public partial class WikiPageService(
         {
             return new Result<PageDto?>(mapper.Map<PageDto>(existingPage), "No changes made.");
         }
-        
+
         existingPage.Title = pageDto.Title;
         existingPage.Slug = pageDto.Slug;
 
@@ -151,7 +155,7 @@ public partial class WikiPageService(
 
         if (updatedPage is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiPageUpdatedDetailsEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiPageUpdatedDetailsEvent
             {
                 UserId = userId,
                 WikiPageId = updatedPage.Id,
@@ -184,14 +188,14 @@ public partial class WikiPageService(
         {
             return new Result<PageDto?>(mapper.Map<PageDto>(existingPage), "No changes made.");
         }
-        
+
         existingPage.Content = content;
 
         var updatedPage = await wikiPageRepository.UpdateContent(wikiId, existingPage);
 
         if (updatedPage is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiPageUpdatedContentEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiPageUpdatedContentEvent
             {
                 UserId = userId,
                 WikiPageId = updatedPage.Id,
@@ -226,7 +230,7 @@ public partial class WikiPageService(
             return Result<PageDto>.Fail("No categories found for this wiki.");
         }
 
-        if (categories.All(c => categoryIds.Contains(c.Id)))
+        if (categoryIds.All(id => existingPage.Categories.Any(c => c.Id == id)))
         {
             return new Result<PageDto?>(mapper.Map<PageDto>(existingPage), "No changes made.");
         }
@@ -237,7 +241,7 @@ public partial class WikiPageService(
 
         if (updatedPage is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiPageUpdatedCategoriesEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiPageUpdatedCategoriesEvent
             {
                 UserId = userId,
                 WikiPageId = updatedPage.Id,
@@ -286,12 +290,49 @@ public partial class WikiPageService(
 
         if (updatedPage is not null)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiPageUpdatedStatusEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiPageUpdatedStatusEvent
             {
                 UserId = userId,
                 WikiPageId = updatedPage.Id,
                 Status = updatedPage.Status
             });
+
+            if (updatedPage.Status == PageStatus.Published)
+            {
+                await busRepository.Publish(new AddNotificationsMessage
+                {
+                    Notifications = existingWiki.Members.Select(m => new NotificationMessage
+                    {
+                        UserId = m.UserId,
+                        Type = NotificationType.WikiPagePublished,
+                        Body = new WikiPagePublished
+                        {
+                            WikiId = wikiId,
+                            WikiPageId = updatedPage.Id,
+                            PerformerId = userId,
+                        },
+                        IsRead = m.UserId == userId
+                    }).ToList()
+                });
+            }
+            else if (updatedPage.Status == PageStatus.Archived)
+            {
+                await busRepository.Publish(new AddNotificationsMessage
+                {
+                    Notifications = existingWiki.Members.Select(m => new NotificationMessage
+                    {
+                        UserId = m.UserId,
+                        Type = NotificationType.WikiPageArchived,
+                        Body = new WikiPageArchived
+                        {
+                            WikiId = wikiId,
+                            WikiPageId = updatedPage.Id,
+                            PerformerId = userId,
+                        },
+                        IsRead = m.UserId == userId
+                    }).ToList()
+                });
+            }
         }
 
         return updatedPage is not null
@@ -318,10 +359,27 @@ public partial class WikiPageService(
 
         if (success)
         {
-            await eventRepository.StoreEvent(wikiId, new WikiPageDeletedEvent
+            await wikiEventRepository.StoreEvent(wikiId, new WikiPageDeletedEvent
             {
                 UserId = userId,
                 WikiPageId = existingPage.Id
+            });
+            
+            await busRepository.Publish(new AddNotificationsMessage
+            {
+                Notifications = existingWiki.Members.Select(m => new NotificationMessage
+                {
+                    UserId = m.UserId,
+                    Type = NotificationType.WikiPageDeleted,
+                    Body = new WikiPageDeleted
+                    {
+                        WikiId = wikiId,
+                        WikiPageId = existingPage.Id,
+                        PageName = existingPage.Title,
+                        PerformerId = userId,
+                    },
+                    IsRead = m.UserId == userId
+                }).ToList()
             });
         }
 

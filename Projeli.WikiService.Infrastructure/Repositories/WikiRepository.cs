@@ -7,6 +7,16 @@ namespace Projeli.WikiService.Infrastructure.Repositories;
 
 public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
 {
+    public async Task<List<Wiki>> GetByIds(List<Ulid> ids, string? userId)
+    {
+        return await database.Wikis
+            .AsNoTracking()
+            .Where(wiki => ids.Contains(wiki.Id)
+                           && (wiki.Status == WikiStatus.Published ||
+                               wiki.Members.Any(member => member.UserId == userId)))
+            .ToListAsync();
+    }
+
     public Task<Wiki?> GetById(Ulid id, string? userId, bool force = false)
     {
         return database.Wikis
@@ -98,6 +108,7 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         existingWiki.ProjectId = wiki.ProjectId;
         existingWiki.ProjectName = wiki.ProjectName;
         existingWiki.ProjectSlug = wiki.ProjectSlug;
+        existingWiki.ProjectImageUrl = wiki.ProjectImageUrl;
         existingWiki.Content = wiki.Content;
         existingWiki.Config = wiki.Config;
         existingWiki.UpdatedAt = wiki.UpdatedAt;
@@ -145,25 +156,26 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         return existingWiki;
     }
 
-    public async Task<Wiki?> UpdateOwnership(Ulid id, string oldOwnerUserId, string newOwnerUserId, WikiMemberPermissions oldOwnerPermissions,
+    public async Task<Wiki?> UpdateOwnership(Ulid id, string oldOwnerUserId, string newOwnerUserId,
+        WikiMemberPermissions oldOwnerPermissions,
         WikiMemberPermissions newOwnerPermissions)
     {
         var existingWiki = await database.Wikis
             .Include(w => w.Members)
             .FirstOrDefaultAsync(w => w.Id == id);
         if (existingWiki is null) return null;
-        
+
         var oldOwner = existingWiki.Members.FirstOrDefault(m => m.UserId == oldOwnerUserId);
         if (oldOwner is null) return null;
-        
+
         var newOwner = existingWiki.Members.FirstOrDefault(m => m.UserId == newOwnerUserId);
         if (newOwner is null) return null;
-        
+
         oldOwner.IsOwner = false;
         oldOwner.Permissions = oldOwnerPermissions;
         newOwner.IsOwner = true;
         newOwner.Permissions = newOwnerPermissions;
-        
+
         await database.SaveChangesAsync();
         return existingWiki;
     }

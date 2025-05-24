@@ -17,10 +17,11 @@ public class WikiServiceTests
     public WikiServiceTests()
     {
         _repositoryMock = new Mock<IWikiRepository>();
-        Mock<IEventRepository> eventRepositoryMock = new();
+        Mock<IWikiEventRepository> eventRepositoryMock = new();
+        Mock<IBusRepository> busRepository = new();
         _mapper =
             new MapperConfiguration(cfg => cfg.AddMaps(typeof(WikiProfile))).CreateMapper();
-        _service = new Application.Services.WikiService(_repositoryMock.Object, _mapper, eventRepositoryMock.Object);
+        _service = new Application.Services.WikiService(_repositoryMock.Object, busRepository.Object, _mapper, eventRepositoryMock.Object);
     }
 
     [Fact]
@@ -170,7 +171,7 @@ public class WikiServiceTests
         _repositoryMock.Setup(s => s.Create(It.IsAny<Wiki>())).ReturnsAsync(wiki);
 
         // Act
-        var result = await _service.Create(wikiDto.ProjectId, wikiDto.ProjectSlug, wikiDto.ProjectName, wikiDto.Members,
+        var result = await _service.Create(wikiDto.ProjectId, wikiDto.ProjectSlug, wikiDto.ProjectName, wikiDto.ProjectImageUrl, wikiDto.Members,
             "user123");
 
         // Assert
@@ -189,7 +190,7 @@ public class WikiServiceTests
             .ReturnsAsync(wiki);
 
         // Act
-        var result = await _service.Create(Ulid.Empty, "", "",
+        var result = await _service.Create(Ulid.Empty, "", "", "",
             [new WikiMemberDto { UserId = "user123", IsOwner = true }], "user123");
 
         // Assert

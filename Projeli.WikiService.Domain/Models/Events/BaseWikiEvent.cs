@@ -22,9 +22,11 @@ namespace Projeli.WikiService.Domain.Models.Events;
 [JsonDerivedType(typeof(WikiUpdatedOwnershipEvent), "WikiUpdatedOwnershipEvent")]
 [JsonDerivedType(typeof(WikiUpdatedSidebarEvent), "WikiUpdatedSidebarEvent")]
 [JsonDerivedType(typeof(WikiUpdatedStatusEvent), "WikiUpdatedStatusEvent")]
-public class BaseWikiEvent
+public abstract class BaseWikiEvent
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public DateTime Timestamp { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ulong Id { get; set; }
     public string UserId { get; set; }
 }

@@ -13,6 +13,8 @@ public class WikiResponse
     
     public string ProjectSlug { get; set; }
     
+    public string? ProjectImageUrl { get; set; }
+    
     public string? Name { get; set; }
     
     public string? Content { get; set; }

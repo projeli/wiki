@@ -16,6 +16,7 @@ public class ProjectUpdatedDetailsConsumer(IWikiService wikiService)
         {
             existingWiki.ProjectName = context.Message.ProjectName;
             existingWiki.ProjectSlug = context.Message.ProjectSlug;
+            existingWiki.ProjectImageUrl = context.Message.ProjectImageUrl;
             
             await wikiService.UpdateProjectDetails(existingWiki.Id, existingWiki);
         }

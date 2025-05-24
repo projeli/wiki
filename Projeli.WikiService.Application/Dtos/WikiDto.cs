@@ -12,6 +12,8 @@ public class WikiDto
     
     public string ProjectSlug { get; set; }
     
+    public string? ProjectImageUrl { get; set; }
+    
     public string? Content { get; set; }
     
     public WikiConfigDto Config { get; set; }
