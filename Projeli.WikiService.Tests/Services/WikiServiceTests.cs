@@ -21,7 +21,8 @@ public class WikiServiceTests
         Mock<IBusRepository> busRepository = new();
         _mapper =
             new MapperConfiguration(cfg => cfg.AddMaps(typeof(WikiProfile))).CreateMapper();
-        _service = new Application.Services.WikiService(_repositoryMock.Object, busRepository.Object, _mapper, eventRepositoryMock.Object);
+        _service = new Application.Services.WikiService(_repositoryMock.Object, busRepository.Object, _mapper,
+            eventRepositoryMock.Object);
     }
 
     [Fact]
@@ -171,7 +172,8 @@ public class WikiServiceTests
         _repositoryMock.Setup(s => s.Create(It.IsAny<Wiki>())).ReturnsAsync(wiki);
 
         // Act
-        var result = await _service.Create(wikiDto.ProjectId, wikiDto.ProjectSlug, wikiDto.ProjectName, wikiDto.ProjectImageUrl, wikiDto.Members,
+        var result = await _service.Create(wikiDto.ProjectId, wikiDto.ProjectSlug, wikiDto.ProjectName,
+            wikiDto.ProjectImageUrl, wikiDto.Members,
             "user123");
 
         // Assert
@@ -203,14 +205,35 @@ public class WikiServiceTests
     public async Task UpdateProjectInfo_ReturnsSuccessResult_WhenWikiExists()
     {
         // Arrange
-        var wiki = new Wiki();
+        var projectId = Ulid.NewUlid();
+        var existingWiki = new Wiki()
+        {
+            ProjectId = projectId,
+            ProjectSlug = "test-slug",
+            ProjectName = "Test Project",
+            ProjectImageUrl = "https://example.com/image.png",
+        };
+        var wikiDto = new WikiDto
+        {
+            ProjectId = projectId,
+            ProjectSlug = "new-test-slug",
+            ProjectName = "New Test Project",
+            ProjectImageUrl = "https://example.com/new-image.png"
+        };
+        var updatedWiki = new Wiki()
+        {
+            ProjectId = projectId,
+            ProjectSlug = "new-test-slug",
+            ProjectName = "New Test Project",
+            ProjectImageUrl = "https://example.com/new-image.png",
+        };
         _repositoryMock.Setup(s => s.GetById(It.IsAny<Ulid>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(wiki);
+            .ReturnsAsync(existingWiki);
         _repositoryMock.Setup(s => s.Update(It.IsAny<Wiki>()))
-            .ReturnsAsync(wiki);
+            .ReturnsAsync(updatedWiki);
 
         // Act
-        var result = await _service.UpdateProjectDetails(Ulid.NewUlid(), new WikiDto());
+        var result = await _service.UpdateProjectDetails(Ulid.NewUlid(), wikiDto);
 
         // Assert
         Assert.NotNull(result);
@@ -238,14 +261,28 @@ public class WikiServiceTests
     public async Task UpdateProjectInfo_ReturnsFailedResult_WhenUpdateFails()
     {
         // Arrange
-        var wiki = new Wiki();
+        var projectId = Ulid.NewUlid();
+        var existingWiki = new Wiki()
+        {
+            ProjectId = projectId,
+            ProjectSlug = "test-slug",
+            ProjectName = "Test Project",
+            ProjectImageUrl = "https://example.com/image.png",
+        };
+        var wikiDto = new WikiDto
+        {
+            ProjectId = projectId,
+            ProjectSlug = "new-test-slug",
+            ProjectName = "New Test Project",
+            ProjectImageUrl = "https://example.com/image.png"
+        };
         _repositoryMock.Setup(s => s.GetById(It.IsAny<Ulid>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(wiki);
+            .ReturnsAsync(existingWiki);
         _repositoryMock.Setup(s => s.Update(It.IsAny<Wiki>()))
             .ReturnsAsync((Wiki?)null);
 
         // Act
-        var result = await _service.UpdateProjectDetails(Ulid.NewUlid(), new WikiDto());
+        var result = await _service.UpdateProjectDetails(Ulid.NewUlid(), wikiDto);
 
         // Assert
         Assert.NotNull(result);
@@ -257,12 +294,12 @@ public class WikiServiceTests
     public async Task UpdateProjectInfo_ReturnsFailedResult_WhenWikiIsInvalid()
     {
         // Arrange
-        var wiki = new Wiki();
+        Wiki? wiki = null;
         _repositoryMock.Setup(s => s.GetById(It.IsAny<Ulid>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(wiki);
 
         // Act
-        var result = await _service.UpdateProjectDetails(Ulid.NewUlid(), new WikiDto());
+        var result = await _service.UpdateProjectDetails(Ulid.NewUlid(), new WikiDto { Id = new Ulid() });
 
         // Assert
         Assert.NotNull(result);

@@ -13,20 +13,21 @@ public class WikiPageServiceTests
 {
     private readonly Mock<IWikiPageRepository> _repositoryMock;
     private readonly Mock<IWikiRepository> _wikiRepositoryMock;
+    private readonly Mock<IWikiCategoryRepository> _categoryRepositoryMock;
     private readonly IWikiPageService _service;
 
     public WikiPageServiceTests()
     {
         _repositoryMock = new Mock<IWikiPageRepository>();
         _wikiRepositoryMock = new Mock<IWikiRepository>();
-        Mock<IWikiCategoryRepository> wikiCategoryRepository = new();
+        _categoryRepositoryMock = new Mock<IWikiCategoryRepository>();
         Mock<IBusRepository> busRepository = new();
         Mock<IWikiEventRepository> eventRepository = new();
         var mapper = new MapperConfiguration(cfg => cfg.AddMaps(typeof(WikiProfile))).CreateMapper();
         _service = new Application.Services.WikiPageService(
             _repositoryMock.Object,
             _wikiRepositoryMock.Object,
-            wikiCategoryRepository.Object,
+            _categoryRepositoryMock.Object,
             eventRepository.Object,
             busRepository.Object,
             mapper
@@ -1034,6 +1035,8 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
         _repositoryMock.Setup(s => s.GetById(wikiId, wikiPageId, userId, false))
             .ReturnsAsync(wikiPage);
+        _categoryRepositoryMock.Setup(s => s.GetByWikiId(wikiId, userId))
+            .ReturnsAsync([new Category { Id = Ulid.NewUlid(), Name = "Test Category" }]);
         _repositoryMock.Setup(s => s.UpdateCategories(wikiId, It.IsAny<Page>(), It.IsAny<List<Ulid>>()))
             .ReturnsAsync(() =>
             {
