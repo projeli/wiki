@@ -14,6 +14,7 @@ public partial class WikiCategoryService(
     IWikiCategoryRepository wikiCategoryRepository,
     IWikiRepository wikiRepository,
     IWikiEventRepository wikiEventRepository,
+    IWikiPageRepository wikiPageRepository,
     IMapper mapper) : IWikiCategoryService
 {
     public async Task<IResult<List<CategoryDto>>> GetByWikiId(Ulid wikiId, string? userId)
@@ -32,6 +33,54 @@ public partial class WikiCategoryService(
     {
         var categories = await wikiCategoryRepository.GetByProjectSlug(wikiId, userId);
         return new Result<List<CategoryDto>>(mapper.Map<List<CategoryDto>>(categories));
+    }
+
+    public async Task<IResult<CategoryDto?>> GetById(Ulid wikiId, Ulid categoryId, string? userId)
+    {
+        var category = await wikiCategoryRepository.GetById(wikiId, categoryId, userId);
+        return category is not null 
+            ? new Result<CategoryDto?>(mapper.Map<CategoryDto>(category))
+            : Result<CategoryDto>.NotFound();
+    }
+
+    public async Task<IResult<CategoryDto?>> GetBySlug(Ulid wikiId, string categorySlug, string? userId)
+    {
+        var category = await wikiCategoryRepository.GetBySlug(wikiId, categorySlug, userId);
+        return category is not null
+            ? new Result<CategoryDto?>(mapper.Map<CategoryDto>(category))
+            : Result<CategoryDto?>.NotFound();
+    }
+
+    public async Task<IResult<CategoryDto?>> GetByProjectIdAndId(Ulid projectId, Ulid categoryId, string? userId)
+    {
+        var category = await wikiCategoryRepository.GetByProjectIdAndId(projectId, categoryId, userId);
+        return category is not null
+            ? new Result<CategoryDto?>(mapper.Map<CategoryDto>(category))
+            : Result<CategoryDto?>.NotFound();
+    }
+
+    public async Task<IResult<CategoryDto?>> GetByProjectIdAndSlug(Ulid projectId, string categorySlug, string? userId)
+    {
+        var category = await wikiCategoryRepository.GetByProjectIdAndSlug(projectId, categorySlug, userId);
+        return category is not null
+            ? new Result<CategoryDto?>(mapper.Map<CategoryDto>(category))
+            : Result<CategoryDto?>.NotFound();
+    }
+
+    public async Task<IResult<CategoryDto?>> GetByProjectSlugAndId(string projectSlug, Ulid categoryId, string? userId)
+    {
+        var category = await wikiCategoryRepository.GetByProjectSlugAndId(projectSlug, categoryId, userId);
+        return category is not null
+            ? new Result<CategoryDto?>(mapper.Map<CategoryDto>(category))
+            : Result<CategoryDto?>.NotFound();
+    }
+
+    public async Task<IResult<CategoryDto?>> GetByProjectSlugAndSlug(string projectSlug, string categorySlug, string? userId)
+    {
+        var category = await wikiCategoryRepository.GetByProjectSlugAndSlug(projectSlug, categorySlug, userId);
+        return category is not null
+            ? new Result<CategoryDto?>(mapper.Map<CategoryDto>(category))
+            : Result<CategoryDto?>.NotFound();
     }
 
     public async Task<IResult<CategoryDto?>> Create(Ulid wikiId, CategoryDto categoryDto, string userId)
@@ -122,6 +171,56 @@ public partial class WikiCategoryService(
             });
         }
         
+        return updatedCategory is not null
+            ? new Result<CategoryDto>(mapper.Map<CategoryDto>(updatedCategory))
+            : Result<CategoryDto>.Fail("Failed to update category.");
+    }
+
+    public async Task<IResult<CategoryDto?>> UpdatePages(Ulid wikiId, Ulid categoryId, List<Ulid> pageIds, string userId)
+    {
+        var existingWiki = await wikiRepository.GetById(wikiId, userId);
+        if (existingWiki is null) return Result<CategoryDto>.NotFound();
+
+        var member = existingWiki.Members.FirstOrDefault(m => m.UserId == userId);
+        if (member is null ||
+            (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.EditWikiPages)))
+        {
+            throw new ForbiddenException("You do not have permission to update pages for this wiki.");
+        }
+
+        var existingCategory = await wikiCategoryRepository.GetById(wikiId, categoryId, userId);
+        if (existingCategory is null) return Result<CategoryDto>.NotFound();
+
+        var pages = await wikiPageRepository.GetByWikiId(wikiId, userId);
+        if (pages.Count == 0)
+        {
+            return Result<CategoryDto>.Fail("No categories found for this wiki.");
+        }
+
+        if (pageIds.Count == existingCategory.Pages.Count && pageIds.All(id => existingCategory.Pages.Any(c => c.Id == id)))
+        {
+            return new Result<CategoryDto?>(mapper.Map<CategoryDto>(existingCategory), "No changes made.");
+        }
+
+        existingCategory.UpdatedAt = DateTime.UtcNow;
+
+        var updatedCategory = await wikiCategoryRepository.UpdatePages(wikiId, existingCategory, pageIds);
+
+        if (updatedCategory is not null)
+        {
+            await wikiEventRepository.StoreEvent(wikiId, new WikiCategoryUpdatedPagesEvent
+            {
+                UserId = userId,
+                CategoryId = updatedCategory.Id,
+                Pages = updatedCategory.Pages.Select(page => new WikiCategoryUpdatedPagesEvent.SimplePage
+                {
+                    Id = page.Id,
+                    Title = page.Title,
+                    Slug = page.Slug
+                }).ToList()
+            });
+        }
+
         return updatedCategory is not null
             ? new Result<CategoryDto>(mapper.Map<CategoryDto>(updatedCategory))
             : Result<CategoryDto>.Fail("Failed to update category.");

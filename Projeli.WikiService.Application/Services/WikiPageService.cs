@@ -230,7 +230,7 @@ public partial class WikiPageService(
             return Result<PageDto>.Fail("No categories found for this wiki.");
         }
 
-        if (categoryIds.All(id => existingPage.Categories.Any(c => c.Id == id)))
+        if (categoryIds.Count == existingPage.Categories.Count && categoryIds.All(id => existingPage.Categories.Any(c => c.Id == id)))
         {
             return new Result<PageDto?>(mapper.Map<PageDto>(existingPage), "No changes made.");
         }
@@ -266,8 +266,7 @@ public partial class WikiPageService(
         if (existingWiki is null) return Result<PageDto>.NotFound();
 
         var member = existingWiki.Members.FirstOrDefault(m => m.UserId == userId);
-        if (member is null ||
-            (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.PublishWikiPages)))
+        if (!CanEditWikiPageStatus(member, status))
         {
             throw new ForbiddenException("You do not have permission to update pages for this wiki.");
         }
@@ -340,6 +339,19 @@ public partial class WikiPageService(
             : Result<PageDto>.Fail("Failed to update page.");
     }
 
+    private static bool CanEditWikiPageStatus(WikiMember? member, PageStatus status)
+    {
+        if (member == null) return false;
+        if (member.IsOwner) return true;
+
+        return status switch
+        {
+            PageStatus.Published => member.Permissions.HasFlag(WikiMemberPermissions.PublishWikiPages),
+            PageStatus.Archived => member.Permissions.HasFlag(WikiMemberPermissions.ArchiveWikiPages),
+            _ => false
+        };
+    }
+    
     public async Task<IResult<PageDto?>> Delete(Ulid wikiId, Ulid pageId, string userId)
     {
         var existingWiki = await wikiRepository.GetById(wikiId, userId);

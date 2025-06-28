@@ -128,7 +128,7 @@ public class WikiService(IWikiRepository repository, IBusRepository busRepositor
         if (existingWiki is null) return Result<WikiDto>.NotFound();
 
         var member = existingWiki.Members.FirstOrDefault(member => member.UserId == userId);
-        if (member is null || (!member.IsOwner && !member.Permissions.HasFlag(WikiMemberPermissions.EditWiki)))
+        if (!CanEditWikiStatus(member, status))
         {
             throw new ForbiddenException("You do not have permission to edit this wiki");
         }
@@ -193,6 +193,19 @@ public class WikiService(IWikiRepository repository, IBusRepository busRepositor
         return updatedWiki is not null
             ? new Result<WikiDto>(mapper.Map<WikiDto>(updatedWiki))
             : Result<WikiDto>.Fail("Failed to update project");
+    }
+    
+    private static bool CanEditWikiStatus(WikiMember? member, WikiStatus status)
+    {
+        if (member == null) return false;
+        if (member.IsOwner) return true;
+
+        return status switch
+        {
+            WikiStatus.Published => member.Permissions.HasFlag(WikiMemberPermissions.PublishWiki),
+            WikiStatus.Archived => member.Permissions.HasFlag(WikiMemberPermissions.ArchiveWiki),
+            _ => false
+        };
     }
 
     public async Task<IResult<WikiDto?>> UpdateContent(Ulid id, string content, string userId)

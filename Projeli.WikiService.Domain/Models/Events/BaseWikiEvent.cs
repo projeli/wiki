@@ -8,6 +8,7 @@ namespace Projeli.WikiService.Domain.Models.Events;
 [JsonDerivedType(typeof(WikiCategoryCreatedEvent), "WikiCategoryCreatedEvent")]
 [JsonDerivedType(typeof(WikiCategoryDeletedEvent), "WikiCategoryDeletedEvent")]
 [JsonDerivedType(typeof(WikiCategoryUpdatedEvent), "WikiCategoryUpdatedEvent")]
+[JsonDerivedType(typeof(WikiCategoryUpdatedPagesEvent), "WikiCategoryUpdatedPagesEvent")]
 [JsonDerivedType(typeof(WikiMemberAddedEvent), "WikiMemberAddedEvent")]
 [JsonDerivedType(typeof(WikiMemberUpdatedPermissionsEvent), "WikiMemberUpdatedPermissionsEvent")]
 [JsonDerivedType(typeof(WikiMemberRemovedEvent), "WikiMemberRemovedEvent")]

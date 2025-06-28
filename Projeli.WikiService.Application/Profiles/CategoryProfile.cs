@@ -14,6 +14,7 @@ public class CategoryProfile : Profile
         CreateMap<CategoryDto, Category>();
 
         CreateMap<CategoryDto, SimpleCategoryResponse>();
+        CreateMap<CategoryDto, CategoryResponse>();
 
         CreateMap<CreateCategoryRequest, CategoryDto>();
         CreateMap<UpdateCategoryRequest, CategoryDto>();

@@ -320,7 +320,7 @@ public class WikiServiceTests
         {
             Id = wikiId,
             Status = currentStatus,
-            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWiki }]
+            Members = [new WikiMember { UserId = userId, IsOwner = true}]
         };
         _repositoryMock.Setup(s => s.GetById(wikiId, userId, false))
             .ReturnsAsync(wiki);
@@ -353,7 +353,7 @@ public class WikiServiceTests
         {
             Id = wikiId,
             Status = currentStatus,
-            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWiki }]
+            Members = [new WikiMember { UserId = userId, IsOwner = true}]
         };
         _repositoryMock.Setup(s => s.GetById(wikiId, userId, false))
             .ReturnsAsync(wiki);
@@ -396,7 +396,7 @@ public class WikiServiceTests
         var wiki = new Wiki
         {
             Id = wikiId,
-            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.EditWiki }]
+            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.PublishWiki }]
         };
         _repositoryMock.Setup(s => s.GetById(It.IsAny<Ulid>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(wiki);

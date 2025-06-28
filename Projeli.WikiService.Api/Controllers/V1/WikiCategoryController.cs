@@ -42,6 +42,56 @@ public class WikiCategoryController(IWikiCategoryService wikiCategoryService, IM
             : result);
     }
     
+    [HttpGet("{categoryId}")]
+    public async Task<IActionResult> GetCategory([FromRoute] Ulid wikiId, [FromRoute] string categoryId)
+    {
+        IResult<CategoryDto?> result;
+        if (Ulid.TryParse(categoryId, out var ulid))
+        {
+            result = await wikiCategoryService.GetById(wikiId, ulid, User.TryGetId());
+        }
+        else
+        {
+            result = await wikiCategoryService.GetBySlug(wikiId, categoryId, User.TryGetId());
+        }
+
+        return HandleResult(result.Success
+            ? new Result<CategoryResponse>(mapper.Map<CategoryResponse>(result.Data))
+            : result);
+    }
+    
+    [HttpGet("{categoryId}/project")]
+    public async Task<IActionResult> GetCategoryByProject([FromRoute] string wikiId, [FromRoute] string categoryId)
+    {
+        IResult<CategoryDto?> result;
+        if (Ulid.TryParse(wikiId, out var projectId))
+        {
+            if (Ulid.TryParse(categoryId, out var categoryIdUlid))
+            {
+                result = await wikiCategoryService.GetByProjectIdAndId(projectId, categoryIdUlid, User.TryGetId());
+            }
+            else
+            {
+                result = await wikiCategoryService.GetByProjectIdAndSlug(projectId, categoryId, User.TryGetId());
+            }
+        }
+        else
+        {
+            if (Ulid.TryParse(categoryId, out var categoryIdUlid))
+            {
+                result = await wikiCategoryService.GetByProjectSlugAndId(wikiId, categoryIdUlid, User.TryGetId());
+            }
+            else
+            {
+                result = await wikiCategoryService.GetByProjectSlugAndSlug(wikiId, categoryId, User.TryGetId());
+            }
+        }
+
+        return HandleResult(result.Success
+            ? new Result<CategoryResponse>(mapper.Map<CategoryResponse>(result.Data))
+            : result);
+    }
+    
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> CreateCategory([FromRoute] Ulid wikiId, [FromBody] CreateCategoryRequest request)
@@ -61,6 +111,17 @@ public class WikiCategoryController(IWikiCategoryService wikiCategoryService, IM
         var result = await wikiCategoryService.Update(wikiId, categoryId, categoryDto, User.GetId());
         return HandleResult(result.Success
             ? new Result<SimpleCategoryResponse>(mapper.Map<SimpleCategoryResponse>(result.Data))
+            : result);
+    }
+    
+    [HttpPut("{pageId}/pages")]
+    [Authorize]
+    public async Task<IActionResult> UpdateCategoryPages([FromRoute] Ulid wikiId, [FromRoute] Ulid pageId,
+        [FromBody] UpdateCategoryPagesRequest request)
+    {
+        var result = await wikiCategoryService.UpdatePages(wikiId, pageId, request.PageIds, User.GetId());
+        return HandleResult(result.Success
+            ? new Result<CategoryResponse>(mapper.Map<CategoryResponse>(result.Data), result.Message)
             : result);
     }
     
