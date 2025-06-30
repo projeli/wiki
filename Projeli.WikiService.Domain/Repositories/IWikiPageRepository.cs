@@ -15,7 +15,7 @@ public interface IWikiPageRepository
     Task<Page?> GetByProjectSlugAndSlug(string projectSlug, string pageSlug, string? userId);
     Task<Page?> Create(Ulid wikiId, Page page);
     Task<Page?> Update(Ulid wikiId, Page page);
-    Task<Page?> UpdateContent(Ulid wikiId, Page page);
+    Task<Page?> UpdateContent(Ulid wikiId, Page page, string userId);
     Task<Page?> UpdateCategories(Ulid wikiId, Page page, List<Ulid> categoryIds);
     Task<Page?> UpdateStatus(Ulid wikiId, Ulid pageId, PageStatus status);
     Task<bool> Delete(Ulid wikiId, Ulid pageId);

@@ -191,7 +191,7 @@ public partial class WikiPageService(
 
         existingPage.Content = content;
 
-        var updatedPage = await wikiPageRepository.UpdateContent(wikiId, existingPage);
+        var updatedPage = await wikiPageRepository.UpdateContent(wikiId, existingPage, userId);
 
         if (updatedPage is not null)
         {

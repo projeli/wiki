@@ -52,7 +52,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                         x.Id == pageId &&
                         (force || (x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          x.Wiki.Members.Any(y => y.UserId == userId)))
-            .Select(SelectPageWithCategories)
+            .Select(SelectPageWithCategoriesAndEditors)
             .FirstOrDefaultAsync();
     }
 
@@ -64,7 +64,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                         x.Slug == slug &&
                         (force || (x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          x.Wiki.Members.Any(y => y.UserId == userId)))
-            .Select(SelectPageWithCategories)
+            .Select(SelectPageWithCategoriesAndEditors)
             .FirstOrDefaultAsync();
     }
 
@@ -76,7 +76,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                         x.Id == pageId &&
                         ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
-            .Select(SelectPageWithCategories)
+            .Select(SelectPageWithCategoriesAndEditors)
             .FirstOrDefaultAsync();
     }
 
@@ -88,7 +88,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                         x.Slug == pageSlug &&
                         ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
-            .Select(SelectPageWithCategories)
+            .Select(SelectPageWithCategoriesAndEditors)
             .FirstOrDefaultAsync();
     }
 
@@ -100,7 +100,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                         x.Id == pageId &&
                         ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
-            .Select(SelectPageWithCategories)
+            .Select(SelectPageWithCategoriesAndEditors)
             .FirstOrDefaultAsync();
     }
 
@@ -112,7 +112,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                         x.Slug == pageSlug &&
                         ((x.Wiki.Status == WikiStatus.Published && x.Status == PageStatus.Published) ||
                          (userId != null && x.Wiki.Members.Any(y => y.UserId == userId))))
-            .Select(SelectPageWithCategories)
+            .Select(SelectPageWithCategoriesAndEditors)
             .FirstOrDefaultAsync();
     }
 
@@ -146,19 +146,32 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         return existingPage;
     }
 
-    public async Task<Page?> UpdateContent(Ulid wikiId, Page page)
+    public async Task<Page?> UpdateContent(Ulid wikiId, Page page, string userId)
     {
-        var existingPage = await database.Pages
-            .FirstOrDefaultAsync(x => x.WikiId == wikiId && x.Id == page.Id);
+        if (string.IsNullOrEmpty(userId)) return null;
 
-        if (existingPage == null) return null;
+        var pageToUpdate = await database.Pages
+            .Include(p => p.Editors)
+            .FirstOrDefaultAsync(p => p.WikiId == wikiId && p.Id == page.Id);
 
-        existingPage.Content = page.Content;
-        existingPage.UpdatedAt = DateTime.UtcNow;
+        if (pageToUpdate == null) return null;
+
+        var editor = pageToUpdate.Editors.FirstOrDefault(e => e.UserId == userId)
+                     ?? await database.Members
+                         .FirstOrDefaultAsync(m => m.UserId == userId && m.WikiId == wikiId);
+
+        if (editor == null) return null;
+
+        if (pageToUpdate.Editors.All(e => e.UserId != userId))
+        {
+            pageToUpdate.Editors.Add(editor);
+        }
+
+        pageToUpdate.Content = page.Content;
+        pageToUpdate.UpdatedAt = DateTime.UtcNow;
 
         await database.SaveChangesAsync();
-
-        return existingPage;
+        return pageToUpdate;
     }
 
     public async Task<Page?> UpdateCategories(Ulid wikiId, Page page, List<Ulid> categoryIds)
@@ -190,7 +203,11 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         if (page == null) return null;
 
         page.Status = status;
-        page.PublishedAt ??= status == PageStatus.Published ? DateTime.UtcNow : null;
+
+        if (status == PageStatus.Published)
+        {
+            page.PublishedAt ??= DateTime.UtcNow;
+        }
 
         await database.SaveChangesAsync();
 
@@ -218,7 +235,7 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
         Status = x.Status
     };
 
-    private static readonly Expression<Func<Page, Page>> SelectPageWithCategories = x => new Page
+    private static readonly Expression<Func<Page, Page>> SelectPageWithCategoriesAndEditors = x => new Page
     {
         Id = x.Id,
         WikiId = x.WikiId,
@@ -236,6 +253,13 @@ public class WikiPageRepository(WikiServiceDbContext database) : IWikiPageReposi
                 Id = y.Id,
                 Name = y.Name,
                 Slug = y.Slug
+            }).ToList(),
+        Editors = x.Editors
+            .Select(y => new WikiMember
+            {
+                Id = y.Id,
+                UserId = y.UserId,
+                IsOwner = y.IsOwner
             }).ToList()
     };
     // hoiiiiiii ik ben nu aan het programmeren, code taal blablabla 

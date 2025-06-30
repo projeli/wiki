@@ -21,4 +21,6 @@ public class PageResponse
     public DateTime? PublishedAt { get; set; }
     
     public List<SimpleCategoryResponse> Categories { get; set; }
+    
+    public List<SimpleWikiMemberResponse> Editors { get; set; }
 }

@@ -125,6 +125,12 @@ public class WikiRepository(WikiServiceDbContext database) : IWikiRepository
         if (existingWiki is null) return null;
 
         existingWiki.Status = status;
+        
+        if (status == WikiStatus.Published)
+        {
+            existingWiki.PublishedAt ??= DateTime.UtcNow;
+        }
+        
         await database.SaveChangesAsync();
 
         return existingWiki;

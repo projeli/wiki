@@ -804,7 +804,7 @@ public class WikiPageServiceTests
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
             Status = WikiStatus.Published,
-            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.PublishWikiPages }]
+            Members = [new WikiMember { UserId = userId, IsOwner = true }]
         };
         var wikiPage = new Page
         {
@@ -856,7 +856,7 @@ public class WikiPageServiceTests
             ProjectId = Ulid.NewUlid(),
             ProjectSlug = "test-project",
             Status = WikiStatus.Published,
-            Members = [new WikiMember { UserId = userId, Permissions = WikiMemberPermissions.PublishWikiPages }]
+            Members = [new WikiMember { UserId = userId, IsOwner = true}]
         };
         var wikiPage = new Page
         {
@@ -930,7 +930,7 @@ public class WikiPageServiceTests
             .ReturnsAsync(wiki);
         _repositoryMock.Setup(s => s.GetById(wikiId, wikiPageId, userId, false))
             .ReturnsAsync(wikiPage);
-        _repositoryMock.Setup(s => s.UpdateContent(wikiId, It.IsAny<Page>()))
+        _repositoryMock.Setup(s => s.UpdateContent(wikiId, It.IsAny<Page>(), userId))
             .ReturnsAsync(() =>
             {
                 wikiPage.Content = "Updated Wiki Page Content";
